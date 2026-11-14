@@ -1,0 +1,79 @@
+/* Arnitas (Arena Integritas) — token dari design system */
+:root {
+  --bg: #F6F8FB; --surface: #FFFFFF; --line: #D9E0EA; --ink: #14284B; --ink-muted: #556274;
+  --navy: #14284B; --toska: #2CC4B0; --toska-strong: #0B7F73; --kuning: #FFC531; --on-accent: #FFFFFF;
+  --salah: #C2383A; --opsi-a: #0B7F73; --opsi-b: #2F5FD0; --opsi-c: #FFC531; --opsi-d: #C2383A; --focus: #2F5FD0;
+  --on-a: #FFFFFF; --on-b: #FFFFFF; --on-c: #14284B; --on-d: #FFFFFF;
+  --shadow-tombol: 0 4px 0 #14284B;
+  --radius-sm: 8px; --radius-md: 16px; --radius-lg: 28px; --radius-full: 999px;
+  --font: "Plus Jakarta Sans", system-ui, Arial, sans-serif;
+}
+[data-theme="dark"] {
+  --bg: #0E1A30; --surface: #172744; --line: #2A3D60; --ink: #EEF3FA; --ink-muted: #A9B6C9;
+  --toska: #34D1BC; --toska-strong: #34D1BC; --on-accent: #0E1A30; --salah: #F07A7A;
+  --opsi-a: #34D1BC; --opsi-b: #7FA2F0; --opsi-c: #FFC531; --opsi-d: #F07A7A; --focus: #FFC531;
+  --on-a: #0E1A30; --on-b: #0E1A30; --on-c: #0E1A30; --on-d: #0E1A30;
+  --shadow-tombol: 0 4px 0 #050B16;
+}
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; min-height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font); font-weight: 500; -webkit-font-smoothing: antialiased; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+h1, h2, h3, p { margin: 0; }
+button { font-family: inherit; }
+@media (prefers-reduced-motion: no-preference) {
+  .tekan { transition: transform .12s ease, box-shadow .12s ease; }
+}
+.tekan:active { transform: translateY(4px); box-shadow: none !important; }
+
+.halaman { min-height: 100dvh; display: flex; flex-direction: column; }
+.hp { width: 100%; max-width: 480px; margin: 0 auto; padding: 24px 16px 28px; display: flex; flex-direction: column; gap: 16px; flex: 1; }
+.label { font-size: 14px; font-weight: 700; letter-spacing: .02em; color: var(--ink-muted); text-transform: uppercase; }
+.muted { color: var(--ink-muted); }
+.kartu { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 20px; }
+.kartu-besar { background: var(--surface); border-radius: var(--radius-lg); padding: 24px; }
+.input { height: 56px; width: 100%; padding: 0 16px; border-radius: var(--radius-md); border: 2px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; font-size: 20px; font-weight: 700; }
+.input.pin { height: 64px; font-size: 32px; font-weight: 800; letter-spacing: .2em; text-align: center; }
+.field { display: flex; flex-direction: column; gap: 8px; font-size: 14px; font-weight: 700; letter-spacing: .02em; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; padding: 0 28px; border: none; border-radius: var(--radius-full); background: var(--toska-strong); color: var(--on-accent); font-size: 18px; font-weight: 800; cursor: pointer; text-decoration: none; box-shadow: var(--shadow-tombol); }
+.btn.sekunder { background: var(--surface); color: var(--ink); border: 2px solid var(--line); box-shadow: none; }
+.btn.kecil { min-height: 44px; font-size: 16px; padding: 0 20px; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: var(--radius-full); font-size: 15px; font-weight: 700; background: var(--line); color: var(--ink); }
+.chip.kuning { background: var(--kuning); color: #14284B; font-weight: 800; }
+.chip.benar { background: var(--toska-strong); color: var(--on-accent); font-weight: 800; }
+.chip.salah { background: var(--salah); color: var(--on-accent); font-weight: 800; }
+.error { color: var(--salah); font-weight: 700; font-size: 15px; }
+
+/* Tombol jawaban */
+.opsi-grid { display: grid; gap: 12px; }
+.opsi { display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 12px 18px; border: none; border-radius: var(--radius-md); font-size: 18px; font-weight: 700; text-align: left; cursor: pointer; box-shadow: var(--shadow-tombol); color: var(--ink); background: var(--surface); }
+.opsi .huruf { font-weight: 800; }
+.opsi.a { background: var(--opsi-a); color: var(--on-a); }
+.opsi.b { background: var(--opsi-b); color: var(--on-b); }
+.opsi.c { background: var(--opsi-c); color: var(--on-c); }
+.opsi.d { background: var(--opsi-d); color: var(--on-d); }
+.opsi.netral { border: 2px solid var(--navy); }
+[data-theme="dark"] .opsi.netral { border-color: var(--line); }
+.opsi.redup { opacity: .35; }
+.opsi.dipilih { outline: 4px solid var(--kuning); outline-offset: 2px; }
+
+/* Layar host */
+.host { min-height: 100dvh; padding: 32px 48px 40px; display: flex; flex-direction: column; gap: 28px; }
+.host-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.brand img { width: 44px; height: 44px; }
+.brand strong { font-size: 24px; font-weight: 800; letter-spacing: -.01em; }
+.host-soal { font-size: clamp(28px, 3.4vw, 44px); line-height: 1.15; font-weight: 700; }
+.host .opsi { min-height: 96px; font-size: clamp(20px, 2.2vw, 28px); padding: 16px 28px; }
+.host .opsi-grid.dua { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.timer { flex: none; width: 112px; height: 112px; border-radius: 50%; border: 10px solid var(--kuning); display: flex; align-items: center; justify-content: center; font-size: 44px; font-weight: 800; color: var(--kuning); }
+.pin-besar { font-size: clamp(72px, 11vw, 140px); line-height: 1; font-weight: 800; letter-spacing: .04em; color: var(--kuning); }
+.baris-skor { display: flex; align-items: center; gap: 20px; padding: 14px 24px; border-radius: var(--radius-md); background: var(--surface); font-size: 24px; font-weight: 700; }
+.baris-skor.juara { background: var(--kuning); color: #0E1A30; font-weight: 800; }
+.bar { flex: 1; height: 40px; border-radius: var(--radius-sm); background: var(--surface); overflow: hidden; }
+.bar > div { height: 100%; border-radius: var(--radius-sm); }
+@media (max-width: 760px) {
+  .host { padding: 20px 16px; }
+  .host .opsi-grid.dua { grid-template-columns: 1fr; }
+}
