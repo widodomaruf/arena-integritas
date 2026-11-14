@@ -1,3 +1,4 @@
+import { Kredit, URL_PANDUAN } from '../components/Kredit.jsx'
 import { useEffect, useState } from 'react'
 import { supabase, GAMES, pesanError } from '../supabase.js'
 import { pindah } from '../App.jsx'
@@ -26,7 +27,10 @@ function Kepala({ kanan }) {
 }
 
 function TautanGabung() {
-  return <a href="/" onClick={(e) => { e.preventDefault(); pindah('/') }} className="btn sekunder kecil">← Halaman input PIN</a>
+  return <>
+    <a href={URL_PANDUAN} target="_blank" rel="noopener noreferrer" className="btn sekunder kecil">Panduan</a>
+    <a href="/" onClick={(e) => { e.preventDefault(); pindah('/') }} className="btn sekunder kecil">← Halaman input PIN</a>
+  </>
 }
 
 function Masuk() {
@@ -57,7 +61,7 @@ function Masuk() {
 
   return (
     <div className="host">
-      <Kepala kanan={<TautanGabung />} />
+      <Kepala kanan={<div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}><TautanGabung /></div>} />
       <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <form onSubmit={kirim} className="kartu-besar" style={{ width: '100%', maxWidth: 440, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <h1 style={{ fontSize: 28, fontWeight: 800 }}>{mode === 'masuk' ? 'Masuk sebagai fasilitator' : 'Daftar akun fasilitator'}</h1>
@@ -71,6 +75,7 @@ function Masuk() {
           </button>
         </form>
       </main>
+      <Kredit />
     </div>
   )
 }
@@ -176,6 +181,7 @@ function Panel({ user }) {
           </section>
         )}
       </main>
+      <Kredit />
     </div>
   )
 }

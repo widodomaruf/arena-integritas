@@ -1,3 +1,4 @@
+import { Kredit } from '../components/Kredit.jsx'
 import { useState } from 'react'
 import { supabase, pastikanLoginAnonim, pesanError } from '../supabase.js'
 import { pindah } from '../App.jsx'
@@ -48,6 +49,7 @@ export default function Gabung({ pinAwal }) {
           Tidak perlu daftar akun. Nama hanya dipakai di papan skor sesi ini.<br />
           Fasilitator? <a href="/host" onClick={(e) => { e.preventDefault(); pindah('/host') }} style={{ color: 'var(--toska-strong)', fontWeight: 700 }}>Masuk di sini</a>
         </p>
+        <Kredit />
       </main>
     </div>
   )
