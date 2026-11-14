@@ -13,6 +13,9 @@ export const GAMES = {
   kuis_live: { nama: 'Kuis Live', ket: 'Pilihan ganda & benar/salah' },
   terima_tolak: { nama: 'Terima atau Tolak?', ket: 'Kartu skenario pemberian' },
   tebak_delik: { nama: 'Tebak Delik', ket: '7 kelompok tindak pidana korupsi' },
+  detektif_spj: { nama: 'Detektif SPJ', ket: 'Temukan kejanggalan di dokumen' },
+  susun_alur: { nama: 'Susun Alur', ket: 'Urutkan langkah melapor & menolak' },
+  dilema: { nama: 'Dilema Bercabang', ket: 'Cerita bercabang, suara terbanyak menentukan akhir' },
 }
 
 export function pesanError(e) {

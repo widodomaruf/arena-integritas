@@ -3,9 +3,14 @@ import QRCode from 'qrcode'
 import { supabase, GAMES, pesanError } from '../supabase.js'
 import { pindah } from '../App.jsx'
 import { daftarOpsi, TombolOpsi, Ikon, useSisaWaktu } from '../components/Opsi.jsx'
+import { urutanBenar, tandaEfek } from '../components/MiniGames.jsx'
 
 const angka = (n) => (n ?? 0).toLocaleString('id-ID')
 const pinSpasi = (p) => (p ? `${p.slice(0, 3)} ${p.slice(3)}` : '')
+const INDEKS_AWAL = 50
+
+function bacaLokal(k, awal) { try { return JSON.parse(localStorage.getItem(k) || 'null') ?? awal } catch { return awal } }
+function tulisLokal(k, v) { try { localStorage.setItem(k, JSON.stringify(v)) } catch {} }
 
 export default function HostSesi({ sid }) {
   const [sesi, setSesi] = useState(null)
@@ -15,8 +20,11 @@ export default function HostSesi({ sid }) {
   const [err, setErr] = useState('')
   const [sibuk, setSibuk] = useState(false)
   const [tampilSkor, setTampilSkor] = useState(false)
+  // Dilema Bercabang: riwayat pilihan mayoritas tiap babak
+  const [alur, setAlur] = useState(() => bacaLokal(`ai_dilema_${sid}`, []))
 
   const urlGabung = `${window.location.origin}/?pin=${sesi?.pin ?? ''}`
+  const indeks = INDEKS_AWAL + alur.reduce((s, a) => s + (a.efek || 0), 0)
 
   async function muatPemain() {
     const { data } = await supabase.from('players').select('id, nama, skor, streak').eq('session_id', sid).order('skor', { ascending: false })
@@ -31,9 +39,8 @@ export default function HostSesi({ sid }) {
       const { data: s, error } = await supabase.from('sessions').select('*').eq('id', sid).maybeSingle()
       if (error || !s || s.host_id !== u.user.id) { setErr('Sesi tidak ditemukan atau bukan milik akun ini.'); return }
       setSesi(s)
-      const { data: qs } = await supabase.from('questions').select('id, kode, game, prompt, payload, durasi_detik').eq('bank_id', s.bank_id).eq('game', s.game).order('urutan')
-      let urut = null
-      try { urut = JSON.parse(localStorage.getItem(`ai_sesi_${sid}`) || 'null') } catch {}
+      const { data: qs } = await supabase.from('questions').select('id, kode, game, prompt, payload, durasi_detik, refleksi, dasar_hukum').eq('bank_id', s.bank_id).eq('game', s.game).order('urutan')
+      const urut = bacaLokal(`ai_sesi_${sid}`, null)
       const peta = new Map((qs || []).map((q) => [q.id, q]))
       setSoal(urut ? urut.map((id) => peta.get(id)).filter(Boolean) : qs || [])
       await muatPemain()
@@ -50,30 +57,57 @@ export default function HostSesi({ sid }) {
 
   const idx = soal.findIndex((q) => q.id === sesi?.current_question_id)
   const q = idx >= 0 ? soal[idx] : null
+  const dilema = sesi?.game === 'dilema'
 
   async function aksi(fn) {
     setErr(''); setSibuk(true)
     try { const { data, error } = await fn(); if (error) throw error; if (data) setSesi(Array.isArray(data) ? data[0] : data) }
     catch (e) { setErr(pesanError(e)) } finally { setSibuk(false) }
   }
-  const tayang = (i) => { setTampilSkor(false); return aksi(() => supabase.rpc('host_show_question', { p_session: sid, p_question: soal[i].id })) }
+  const tayangId = (id) => { setTampilSkor(false); return aksi(() => supabase.rpc('host_show_question', { p_session: sid, p_question: id })) }
+  const tayang = (i) => tayangId(soal[i].id)
   const buka = () => aksi(() => supabase.rpc('host_set_status', { p_session: sid, p_status: 'reveal' }))
   const selesai = () => aksi(() => supabase.rpc('host_set_status', { p_session: sid, p_status: 'ended' }))
 
+  function mulai() {
+    if (dilema) {
+      const awal = soal.find((x) => x.payload?.node === 'N1') || soal[0]
+      setAlur([]); tulisLokal(`ai_dilema_${sid}`, [])
+      return tayangId(awal.id)
+    }
+    return tayang(0)
+  }
+
+  // Dilema: lanjut ke babak berikutnya sesuai pilihan mayoritas
+  function lanjutCerita(pilihan, efek) {
+    const o = daftarOpsi(q).find((x) => x.key === pilihan)
+    const baru = [...alur, { node: q.payload?.node, pilihan, label: o?.label, efek }]
+    setAlur(baru); tulisLokal(`ai_dilema_${sid}`, baru)
+    const tujuan = soal.find((x) => x.payload?.skenario_id === q.payload?.skenario_id && x.payload?.node === o?.next)
+    if (tujuan) return tayangId(tujuan.id)
+    return selesai()
+  }
+
   if (err && !sesi) return <div className="host"><p className="error">{err}</p><button className="btn kecil" onClick={() => pindah('/host')}>Kembali</button></div>
   if (!sesi) return <div className="host"><p className="muted">Memuat…</p></div>
+
+  const label = sesi.status === 'lobby' || !q
+    ? GAMES[sesi.game]?.nama
+    : dilema ? `${q.payload?.judul} · ${q.payload?.akhir ? 'Akhir cerita' : `Babak ${alur.length + 1}`}` : `Soal ${idx + 1} dari ${soal.length}`
 
   const kepala = (
     <header className="host-header">
       <div className="brand">
         <img src="/logo-mark-on-dark.svg" alt="" />
-        <span className="label" style={{ fontSize: 16 }}>
-          {sesi.status === 'lobby' ? GAMES[sesi.game]?.nama : q ? `Soal ${idx + 1} dari ${soal.length}` : GAMES[sesi.game]?.nama} · PIN {pinSpasi(sesi.pin)}
-        </span>
+        <span className="label" style={{ fontSize: 16 }}>{label} · PIN {pinSpasi(sesi.pin)}</span>
       </div>
-      <span className="muted" style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 18 }}>
-        <Ikon nama="orang" size={22} /> {pemain.length} peserta
-      </span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+        {dilema && sesi.status !== 'lobby' && <span className="chip kuning" style={{ fontSize: 18 }}>Indeks Integritas {indeks}</span>}
+        <span className="muted" style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 18 }}>
+          <Ikon nama="orang" size={22} /> {pemain.length} peserta
+        </span>
+        <a href="/host" onClick={(e) => { e.preventDefault(); pindah('/host') }} className="btn sekunder kecil">← Ruang fasilitator</a>
+      </div>
     </header>
   )
 
@@ -99,19 +133,23 @@ export default function HostSesi({ sid }) {
             {pemain.length === 0 && <span className="muted" style={{ fontWeight: 700 }}>Menunggu peserta bergabung…</span>}
             {pemain.map((p) => <span key={p.id} className="chip">{p.nama}</span>)}
           </div>
-          <button className="btn tekan" disabled={sibuk || soal.length === 0 || pemain.length === 0} onClick={() => tayang(0)}>Mulai</button>
+          <button className="btn tekan" disabled={sibuk || soal.length === 0 || pemain.length === 0} onClick={mulai}>Mulai</button>
         </footer>
       </>
     )
+  } else if (q && dilema && q.payload?.akhir && sesi.status !== 'ended') {
+    isi = <AkhirCerita q={q} alur={alur} indeks={indeks} aksi={<button className="btn tekan" disabled={sibuk} onClick={selesai}>Tutup cerita</button>} />
   } else if (sesi.status === 'running' && q) {
     isi = <SoalTayang key={q.id} q={q} sid={sid} totalPemain={pemain.length} onHabis={buka} sibuk={sibuk} />
   } else if (sesi.status === 'reveal' && q && !tampilSkor) {
-    isi = <Pembahasan key={q.id} q={q} sid={sid} onLanjut={() => setTampilSkor(true)} />
+    isi = <Pembahasan key={q.id} q={q} sid={sid} sibuk={sibuk} onLanjut={() => setTampilSkor(true)} onLanjutCerita={lanjutCerita} />
   } else if (sesi.status === 'reveal' && q && tampilSkor) {
     const terakhir = idx >= soal.length - 1
     isi = <PapanSkor pemain={pemain} judul="Papan Skor" aksi={
       <button className="btn tekan" disabled={sibuk} onClick={() => (terakhir ? selesai() : tayang(idx + 1))}>{terakhir ? 'Lihat juara' : 'Soal berikutnya'}</button>
     } />
+  } else if (dilema) {
+    isi = <AkhirCerita q={q} alur={alur} indeks={indeks} aksi={<button className="btn sekunder kecil" onClick={() => pindah('/host')}>Kembali ke ruang fasilitator</button>} />
   } else {
     isi = <PapanSkor pemain={pemain} judul="Juara Arnitas" akhir aksi={
       <button className="btn sekunder kecil" onClick={() => pindah('/host')}>Kembali ke ruang fasilitator</button>
@@ -123,6 +161,39 @@ export default function HostSesi({ sid }) {
       {kepala}
       {isi}
       {err && <p className="error" role="alert">{err}</p>}
+    </div>
+  )
+}
+
+/** Isi soal di layar proyektor, per jenis game. */
+function KontenSoal({ q }) {
+  if (q.game === 'detektif_spj') {
+    return (
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {q.payload?.konteks && <p className="muted" style={{ fontSize: 22, fontWeight: 700 }}>{q.payload.konteks}</p>}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: 12 }}>
+          {(q.payload?.elemen || []).map((e) => (
+            <div key={e.no} className="kartu" style={{ display: 'flex', gap: 14, alignItems: 'baseline', fontSize: 22, fontWeight: 700 }}>
+              <span style={{ color: 'var(--kuning)', fontWeight: 800 }}>{e.no}</span><span>{e.teks}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+  if (q.game === 'susun_alur') {
+    return (
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: 12, alignContent: 'start' }}>
+        {(q.payload?.langkah || []).map((l) => (
+          <div key={l.id} className="kartu" style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.35 }}>{l.teks}</div>
+        ))}
+      </div>
+    )
+  }
+  const opsi = daftarOpsi(q)
+  return (
+    <div className={`opsi-grid ${opsi.length <= 4 ? 'dua' : ''}`} style={{ flex: 1, gridTemplateColumns: opsi.length > 4 ? 'repeat(auto-fit, minmax(320px, 1fr))' : q.game === 'dilema' ? '1fr' : undefined }}>
+      {opsi.map((o) => <TombolOpsi key={o.key} o={o} disabled />)}
     </div>
   )
 }
@@ -143,62 +214,118 @@ function SoalTayang({ q, sid, totalPemain, onHabis, sibuk }) {
     if (dipanggil.current) return
     if (sisa === 0 || (totalPemain > 0 && masuk >= totalPemain)) { dipanggil.current = true; setTimeout(onHabis, sisa === 0 ? 1500 : 600) }
   }, [sisa, masuk, totalPemain])
-  const opsi = daftarOpsi(q)
+  const instruksi = { detektif_spj: 'Temukan bagian yang janggal di HP kalian', susun_alur: 'Susun langkahnya di HP kalian', dilema: 'Apa yang sebaiknya dilakukan? Pilih di HP kalian' }[q.game]
   return (
     <>
       <section style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
         <div className="timer" role="timer" aria-label={`Sisa waktu ${sisa} detik`}>{sisa}</div>
-        <h1 className="host-soal">{q.prompt}</h1>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <h1 className="host-soal" style={q.game === 'dilema' ? { fontSize: 'clamp(24px, 2.6vw, 34px)', lineHeight: 1.3 } : undefined}>{q.prompt}</h1>
+          {instruksi && <p className="muted" style={{ fontSize: 20, fontWeight: 700 }}>{instruksi}</p>}
+        </div>
       </section>
-      <div className={`opsi-grid ${opsi.length <= 4 ? 'dua' : ''}`} style={{ flex: 1, gridTemplateColumns: opsi.length > 4 ? 'repeat(auto-fit, minmax(320px, 1fr))' : undefined }}>
-        {opsi.map((o) => <TombolOpsi key={o.key} o={o} disabled />)}
-      </div>
+      <KontenSoal q={q} />
       <footer style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span className="muted" style={{ fontWeight: 700, fontSize: 20 }}><b style={{ color: 'var(--ink)' }}>{masuk}</b> / {totalPemain} menjawab</span>
-        <button className="btn sekunder kecil" disabled={sibuk} onClick={() => { dipanggil.current = true; onHabis() }}>Tutup &amp; tampilkan jawaban</button>
+        <button className="btn sekunder kecil" disabled={sibuk} onClick={() => { dipanggil.current = true; onHabis() }}>Tutup &amp; tampilkan hasil</button>
       </footer>
     </>
   )
 }
 
-function Pembahasan({ q, sid, onLanjut }) {
+function Bar({ n, total, warna }) {
+  return <div className="bar"><div style={{ width: `${total ? (n / total) * 100 : 0}%`, background: warna }} /></div>
+}
+
+function Pembahasan({ q, sid, sibuk, onLanjut, onLanjutCerita }) {
   const [rev, setRev] = useState(null)
-  const [sebaran, setSebaran] = useState({})
+  const [jawaban, setJawaban] = useState([])
   useEffect(() => {
     ;(async () => {
       const { data } = await supabase.rpc('get_reveal', { p_session: sid })
       setRev(data?.[0] || null)
-      const { data: a } = await supabase.from('answers').select('jawaban').eq('session_id', sid).eq('question_id', q.id)
-      const c = {}; (a || []).forEach((x) => { const k = x.jawaban?.pilihan; c[k] = (c[k] || 0) + 1 }); setSebaran(c)
+      const { data: a } = await supabase.from('answers').select('jawaban, benar').eq('session_id', sid).eq('question_id', q.id)
+      setJawaban(a || [])
     })()
   }, [q.id])
-  const opsi = daftarOpsi(q)
-  const total = Object.values(sebaran).reduce((s, v) => s + v, 0)
-  const benarKey = rev ? rev.kunci : null
-  const jumlahBenar = benarKey != null ? sebaran[benarKey] || 0 : 0
+  const kunci = rev?.kunci
+  const total = jawaban.length
+  const jumlahBenar = jawaban.filter((a) => a.benar).length
+
+  let kiri
+  let tombol = <button className="btn tekan" onClick={onLanjut}>Lihat peringkat</button>
+
+  if (q.game === 'detektif_spj') {
+    const hitung = {}
+    jawaban.forEach((a) => (a.jawaban?.pilihan || []).forEach((no) => { hitung[no] = (hitung[no] || 0) + 1 }))
+    kiri = (
+      <>
+        {(q.payload?.elemen || []).map((e) => {
+          const janggal = Array.isArray(kunci) && kunci.includes(e.no)
+          return (
+            <div key={e.no} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '8px 12px', borderRadius: 16, opacity: janggal ? 1 : 0.5, outline: janggal ? '3px solid var(--salah)' : 'none' }}>
+              <span style={{ flex: 1, fontSize: 19, fontWeight: 700 }}><b style={{ color: 'var(--kuning)' }}>{e.no}.</b> {e.teks}</span>
+              <span className="muted" style={{ fontWeight: 800, fontSize: 18 }}>{hitung[e.no] || 0} menandai</span>
+              {janggal && <span className="chip salah"><Ikon nama="salah" size={16} />Janggal</span>}
+            </div>
+          )
+        })}
+        <p className="muted" style={{ fontWeight: 700, fontSize: 18 }}><b style={{ color: 'var(--toska)' }}>{jumlahBenar} dari {total}</b> menemukan semua kejanggalan</p>
+      </>
+    )
+  } else if (q.game === 'susun_alur') {
+    kiri = (
+      <>
+        <span className="label" style={{ fontSize: 16 }}>Urutan yang benar</span>
+        <ol style={{ margin: 0, paddingLeft: 32, display: 'flex', flexDirection: 'column', gap: 10, fontSize: 22, fontWeight: 700, lineHeight: 1.35 }}>
+          {urutanBenar(q, kunci).map((t) => <li key={t}>{t}</li>)}
+        </ol>
+        <p className="muted" style={{ fontWeight: 700, fontSize: 18 }}><b style={{ color: 'var(--toska)' }}>{jumlahBenar} dari {total}</b> menyusun dengan tepat</p>
+      </>
+    )
+  } else {
+    const hitung = {}
+    jawaban.forEach((a) => { const k = a.jawaban?.pilihan; hitung[k] = (hitung[k] || 0) + 1 })
+    const opsi = daftarOpsi(q)
+    let mayoritas = null
+    if (q.game === 'dilema' && kunci) {
+      mayoritas = [...opsi].sort((a, b) => (hitung[b.key] || 0) - (hitung[a.key] || 0) || (kunci[b.key] ?? 0) - (kunci[a.key] ?? 0))[0]
+      tombol = <button className="btn tekan" disabled={sibuk || !mayoritas} onClick={() => onLanjutCerita(mayoritas.key, kunci[mayoritas.key] ?? 0)}>Lanjutkan cerita</button>
+    }
+    kiri = (
+      <>
+        {opsi.map((o) => {
+          const n = hitung[o.key] || 0
+          const sorot = q.game === 'dilema' ? mayoritas?.key === o.key : JSON.stringify(o.key) === JSON.stringify(kunci)
+          return (
+            <div key={o.key} style={{ display: 'flex', alignItems: 'center', gap: 16, opacity: sorot ? 1 : 0.55, padding: '8px 12px', borderRadius: 16, outline: sorot ? '3px solid var(--toska)' : 'none' }}>
+              <span style={{ width: q.game === 'dilema' ? 360 : 220, fontSize: 18, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: q.game === 'dilema' ? 'normal' : 'nowrap' }}>{o.huruf ? `${o.huruf} · ` : ''}{o.label}</span>
+              <Bar n={n} total={total} warna={`var(--opsi-${o.kelas === 'netral' ? 'a' : o.kelas})`} />
+              <span style={{ width: 36, textAlign: 'right', fontSize: 22, fontWeight: 800 }}>{n}</span>
+              {q.game === 'dilema' && kunci && <span className={`chip ${kunci[o.key] > 0 ? 'benar' : 'salah'}`}>{tandaEfek(kunci[o.key])}</span>}
+              {q.game !== 'dilema' && sorot && <span className="chip benar"><Ikon nama="benar" size={16} />Benar</span>}
+            </div>
+          )
+        })}
+        {q.game === 'dilema'
+          ? <p className="muted" style={{ fontWeight: 700, fontSize: 18 }}>Suara terbanyak: <b style={{ color: 'var(--toska)' }}>{mayoritas ? `${mayoritas.huruf}` : '-'}</b>. Cerita berlanjut sesuai pilihan ini.</p>
+          : <p className="muted" style={{ fontWeight: 700, fontSize: 18 }}><b style={{ color: 'var(--toska)' }}>{hitung[kunci] || 0} dari {total}</b> menjawab benar</p>}
+      </>
+    )
+  }
+
+  const teks = q.game === 'dilema' ? 'Angka di samping tiap pilihan adalah dampaknya ke Indeks Integritas kelompok. Bahas dulu kenapa pilihan itu berdampak begitu, lalu lanjutkan cerita.' : rev?.pembahasan
+
   return (
     <>
-      <h1 className="host-soal" style={{ fontSize: 'clamp(22px, 2.4vw, 32px)', color: 'var(--ink-muted)' }}>{q.prompt}</h1>
+      <h1 className="host-soal" style={{ fontSize: 'clamp(20px, 2.2vw, 30px)', color: 'var(--ink-muted)' }}>{q.prompt}</h1>
       <main style={{ flex: 1, display: 'flex', gap: 32, flexWrap: 'wrap' }}>
-        <section aria-label="Sebaran jawaban" style={{ flex: '1 1 480px', display: 'flex', flexDirection: 'column', gap: 12, justifyContent: 'center' }}>
-          {opsi.map((o) => {
-            const n = sebaran[o.key] || 0, ok = o.key === benarKey
-            return (
-              <div key={o.key} style={{ display: 'flex', alignItems: 'center', gap: 16, opacity: ok ? 1 : 0.5, padding: ok ? '8px 12px' : 0, margin: ok ? '0 -12px' : 0, borderRadius: 16, outline: ok ? '3px solid var(--toska)' : 'none' }}>
-                <span style={{ width: 220, fontSize: 18, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.huruf ? `${o.huruf} · ` : ''}{o.label}</span>
-                <div className="bar"><div style={{ width: `${total ? (n / total) * 100 : 0}%`, background: `var(--opsi-${o.kelas === 'netral' ? 'a' : o.kelas})` }} /></div>
-                <span style={{ width: 36, textAlign: 'right', fontSize: 22, fontWeight: 800 }}>{n}</span>
-                {ok && <span className="chip benar"><Ikon nama="benar" size={16} />Benar</span>}
-              </div>
-            )
-          })}
-          <p className="muted" style={{ fontWeight: 700, fontSize: 18 }}><b style={{ color: 'var(--toska)' }}>{jumlahBenar} dari {total}</b> menjawab benar</p>
-        </section>
-        <aside className="kartu-besar" style={{ flex: '0 1 480px', display: 'flex', flexDirection: 'column', gap: 14, position: 'relative' }}>
+        <section aria-label="Hasil jawaban" style={{ flex: '1 1 520px', display: 'flex', flexDirection: 'column', gap: 10, justifyContent: 'center' }}>{kiri}</section>
+        <aside className="kartu-besar" style={{ flex: '0 1 460px', display: 'flex', flexDirection: 'column', gap: 14, position: 'relative' }}>
           <img src="/bening-mikir.svg" alt="" width="110" height="110" style={{ position: 'absolute', right: 12, top: -28 }} />
           <span className="label" style={{ color: 'var(--toska)' }}>Kenapa ini penting?</span>
-          <p style={{ paddingRight: 90, fontSize: 21, lineHeight: 1.4, fontWeight: 700 }}>{rev?.pembahasan || '…'}</p>
-          {rev?.dasar_hukum && <p className="muted" style={{ fontSize: 15, lineHeight: 1.5 }}>{rev.dasar_hukum}</p>}
+          <p style={{ paddingRight: 90, fontSize: 20, lineHeight: 1.4, fontWeight: 700 }}>{teks || '…'}</p>
+          {(rev?.dasar_hukum || q.dasar_hukum) && <p className="muted" style={{ fontSize: 15, lineHeight: 1.5 }}>{rev?.dasar_hukum || q.dasar_hukum}</p>}
           {rev?.refleksi && (
             <div style={{ marginTop: 'auto', padding: '14px 16px', borderRadius: 16, background: 'var(--bg)' }}>
               <span className="label" style={{ color: 'var(--kuning)' }}>Diskusikan</span>
@@ -207,9 +334,39 @@ function Pembahasan({ q, sid, onLanjut }) {
           )}
         </aside>
       </main>
-      <footer style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <button className="btn tekan" onClick={onLanjut}>Lihat peringkat</button>
-      </footer>
+      <footer style={{ display: 'flex', justifyContent: 'flex-end' }}>{tombol}</footer>
+    </>
+  )
+}
+
+function AkhirCerita({ q, alur, indeks, aksi }) {
+  const nada = indeks >= 70 ? 'Integritas terjaga!' : indeks >= 40 ? 'Ada yang perlu dikoreksi.' : 'Integritas runtuh.'
+  return (
+    <>
+      <main style={{ flex: 1, display: 'flex', gap: 40, alignItems: 'center', flexWrap: 'wrap' }}>
+        <section style={{ flex: '1 1 560px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <span className="label" style={{ fontSize: 16 }}>Akhir cerita · {q?.payload?.judul}</span>
+          {q && <h1 style={{ fontSize: 'clamp(26px, 2.8vw, 38px)', lineHeight: 1.3, fontWeight: 800 }}>{q.prompt}</h1>}
+          {alur.length > 0 && (
+            <ol style={{ margin: 0, paddingLeft: 26, display: 'flex', flexDirection: 'column', gap: 6, fontSize: 18, fontWeight: 700 }} className="muted">
+              {alur.map((a, i) => <li key={i}>{a.label} <b style={{ color: a.efek > 0 ? 'var(--toska)' : 'var(--salah)' }}>({tandaEfek(a.efek)})</b></li>)}
+            </ol>
+          )}
+          {q?.refleksi && (
+            <div className="kartu-besar">
+              <span className="label" style={{ color: 'var(--kuning)' }}>Diskusikan</span>
+              <p style={{ marginTop: 6, fontSize: 22, lineHeight: 1.4, fontWeight: 700 }}>{q.refleksi}</p>
+            </div>
+          )}
+        </section>
+        <aside style={{ flex: '0 1 320px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
+          <img src={indeks >= 70 ? '/bening-senang.svg' : indeks >= 40 ? '/bening-mikir.svg' : '/bening-kaget.svg'} alt="" width="200" height="200" />
+          <span className="label">Indeks Integritas akhir</span>
+          <span style={{ fontSize: 96, lineHeight: 1, fontWeight: 800, color: 'var(--kuning)' }}>{indeks}</span>
+          <p style={{ fontSize: 22, fontWeight: 700 }}>{nada}</p>
+        </aside>
+      </main>
+      <footer style={{ display: 'flex', justifyContent: 'flex-end' }}>{aksi}</footer>
     </>
   )
 }

@@ -44,6 +44,10 @@ export function daftarOpsi(q) {
       { key: 'AMAN', label: 'Aman diterima', huruf: '', kelas: 'a', ikon: 'kanan' },
     ]
   }
+  if (q.game === 'dilema') {
+    const meta = [['a', 'lingkaran'], ['b', 'segitiga'], ['c', 'kotak']]
+    return (pl.pilihan || []).map((p, i) => ({ key: p.id, label: p.teks, huruf: 'ABC'[i], kelas: meta[i]?.[0], bentuk: meta[i]?.[1], next: p.next }))
+  }
   if (q.game === 'tebak_delik') {
     return (pl.opsi || []).map((v, i) => ({ key: v, label: v, huruf: String(i + 1), kelas: 'netral' }))
   }

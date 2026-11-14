@@ -25,6 +25,10 @@ function Kepala({ kanan }) {
   )
 }
 
+function TautanGabung() {
+  return <a href="/" onClick={(e) => { e.preventDefault(); pindah('/') }} className="btn sekunder kecil">← Halaman input PIN</a>
+}
+
 function Masuk() {
   const [mode, setMode] = useState('masuk')
   const [email, setEmail] = useState('')
@@ -32,19 +36,6 @@ function Masuk() {
   const [pesan, setPesan] = useState('')
   const [err, setErr] = useState('')
   const [sibuk, setSibuk] = useState(false)
-
-  async function masukGoogle() {
-    setErr(''); setSibuk(true)
-    try {
-      const { data: cur } = await supabase.auth.getSession()
-      if (cur.session?.user?.is_anonymous) await supabase.auth.signOut()
-      const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/host` } })
-      if (error) throw error
-    } catch (e2) {
-      setErr(/provider is not enabled/i.test(e2.message) ? 'Login Google belum diaktifkan di Supabase.' : pesanError(e2))
-      setSibuk(false)
-    }
-  }
 
   async function kirim(e) {
     e.preventDefault(); setErr(''); setPesan(''); setSibuk(true)
@@ -66,16 +57,10 @@ function Masuk() {
 
   return (
     <div className="host">
-      <Kepala />
+      <Kepala kanan={<TautanGabung />} />
       <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <form onSubmit={kirim} className="kartu-besar" style={{ width: '100%', maxWidth: 440, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <h1 style={{ fontSize: 28, fontWeight: 800 }}>{mode === 'masuk' ? 'Masuk sebagai fasilitator' : 'Daftar akun fasilitator'}</h1>
-          <button type="button" className="btn tekan" onClick={masukGoogle} disabled={sibuk}
-            style={{ background: '#FFFFFF', color: '#14284B', boxShadow: 'none', border: '2px solid var(--line)' }}>
-            <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
-            Lanjut dengan Google
-          </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }} className="muted"><span style={{ flex: 1, height: 1, background: 'var(--line)' }} />atau pakai email<span style={{ flex: 1, height: 1, background: 'var(--line)' }} /></div>
           <label className="field">EMAIL<input className="input" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
           <label className="field">KATA SANDI<input className="input" type="password" required minLength={8} autoComplete={mode === 'masuk' ? 'current-password' : 'new-password'} value={sandi} onChange={(e) => setSandi(e.target.value)} /></label>
           {err && <p className="error" role="alert">{err}</p>}
@@ -93,6 +78,8 @@ function Masuk() {
 function Panel({ user }) {
   const [bank, setBank] = useState(null)
   const [jumlah, setJumlah] = useState({})
+  const [cerita, setCerita] = useState([])
+  const [skenario, setSkenario] = useState('')
   const [game, setGame] = useState('kuis_live')
   const [n, setN] = useState(10)
   const [acak, setAcak] = useState(true)
@@ -105,8 +92,14 @@ function Panel({ user }) {
       const { data: b } = await supabase.from('question_banks').select('id, judul').order('created_at').limit(1).maybeSingle()
       setBank(b)
       if (b) {
-        const { data: qs } = await supabase.from('questions').select('game').eq('bank_id', b.id)
-        const c = {}; (qs || []).forEach((x) => { c[x.game] = (c[x.game] || 0) + 1 }); setJumlah(c)
+        const { data: qs } = await supabase.from('questions').select('game, payload').eq('bank_id', b.id)
+        const c = {}; const daftar = []
+        ;(qs || []).forEach((x) => {
+          c[x.game] = (c[x.game] || 0) + 1
+          if (x.game === 'dilema' && x.payload?.node === 'N1') daftar.push({ id: x.payload.skenario_id, judul: x.payload.judul })
+        })
+        daftar.sort((p, q) => p.id.localeCompare(q.id))
+        setJumlah(c); setCerita(daftar); setSkenario(daftar[0]?.id || '')
       }
       const { data: s } = await supabase.from('sessions').select('id, pin, game, status, created_at').eq('host_id', user.id).neq('status', 'ended').order('created_at', { ascending: false }).limit(5)
       setRiwayat(s || [])
@@ -118,19 +111,26 @@ function Panel({ user }) {
     try {
       const { data, error } = await supabase.rpc('create_session', { p_bank: bank.id, p_game: game })
       if (error) throw error
-      const { data: qs } = await supabase.from('questions').select('id').eq('bank_id', bank.id).eq('game', game).order('urutan')
-      let ids = (qs || []).map((x) => x.id)
-      if (acak) ids = ids.map((v) => [Math.random(), v]).sort((a, b) => a[0] - b[0]).map((x) => x[1])
-      ids = ids.slice(0, n)
+      const { data: qs } = await supabase.from('questions').select('id, payload').eq('bank_id', bank.id).eq('game', game).order('urutan')
+      let ids
+      if (game === 'dilema') {
+        ids = (qs || []).filter((x) => x.payload?.skenario_id === skenario).map((x) => x.id)
+      } else {
+        ids = (qs || []).map((x) => x.id)
+        if (acak) ids = ids.map((v) => [Math.random(), v]).sort((a, b) => a[0] - b[0]).map((x) => x[1])
+        ids = ids.slice(0, n)
+      }
       try { localStorage.setItem(`ai_sesi_${data.id}`, JSON.stringify(ids)) } catch {}
       pindah(`/host/${data.id}`)
     } catch (e) { setErr(pesanError(e)) } finally { setSibuk(false) }
   }
 
+  const ketJumlah = (k) => (k === 'dilema' ? `${cerita.length} cerita` : `${jumlah[k] ?? 0} soal tersedia`)
+
   return (
     <div className="host">
-      <Kepala kanan={<button className="btn sekunder kecil" onClick={() => supabase.auth.signOut()}>Keluar</button>} />
-      <main style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 960, width: '100%', margin: '0 auto' }}>
+      <Kepala kanan={<div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}><TautanGabung /><button className="btn sekunder kecil" onClick={() => supabase.auth.signOut()}>Keluar</button></div>} />
+      <main style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1040, width: '100%', margin: '0 auto' }}>
         <h1 style={{ fontSize: 36, fontWeight: 800 }}>Buat sesi baru</h1>
         <p className="muted" style={{ fontWeight: 700 }}>{bank ? bank.judul : 'Memuat bank soal…'}</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
@@ -139,20 +139,30 @@ function Panel({ user }) {
               style={{ textAlign: 'left', cursor: 'pointer', color: 'var(--ink)', border: `3px solid ${game === k ? 'var(--toska)' : 'transparent'}`, display: 'flex', flexDirection: 'column', gap: 6 }}>
               <span style={{ fontSize: 22, fontWeight: 800 }}>{g.nama}</span>
               <span className="muted" style={{ fontWeight: 600 }}>{g.ket}</span>
-              <span className="label" style={{ marginTop: 8 }}>{jumlah[k] ?? 0} soal tersedia</span>
+              <span className="label" style={{ marginTop: 8 }}>{ketJumlah(k)}</span>
             </button>
           ))}
         </div>
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center' }}>
-          <label className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>JUMLAH SOAL
-            <select className="input" style={{ width: 120, height: 48, fontSize: 18 }} value={n} onChange={(e) => setN(Number(e.target.value))}>
-              {[5, 10, 15, 20, 99].map((v) => <option key={v} value={v}>{v === 99 ? 'Semua' : v}</option>)}
-            </select>
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700 }}>
-            <input type="checkbox" checked={acak} onChange={(e) => setAcak(e.target.checked)} style={{ width: 22, height: 22 }} /> Acak urutan soal
-          </label>
-          <button className="btn tekan" style={{ marginLeft: 'auto' }} disabled={!bank || sibuk} onClick={buat}>{sibuk ? 'Membuat…' : 'Buka lobi'}</button>
+          {game === 'dilema' ? (
+            <label className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>CERITA
+              <select className="input" style={{ width: 320, height: 48, fontSize: 18 }} value={skenario} onChange={(e) => setSkenario(e.target.value)}>
+                {cerita.map((c) => <option key={c.id} value={c.id}>{c.judul}</option>)}
+              </select>
+            </label>
+          ) : (
+            <>
+              <label className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>JUMLAH SOAL
+                <select className="input" style={{ width: 120, height: 48, fontSize: 18 }} value={n} onChange={(e) => setN(Number(e.target.value))}>
+                  {[3, 5, 10, 15, 20, 99].map((v) => <option key={v} value={v}>{v === 99 ? 'Semua' : v}</option>)}
+                </select>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700 }}>
+                <input type="checkbox" checked={acak} onChange={(e) => setAcak(e.target.checked)} style={{ width: 22, height: 22 }} /> Acak urutan soal
+              </label>
+            </>
+          )}
+          <button className="btn tekan" style={{ marginLeft: 'auto' }} disabled={!bank || sibuk || (game === 'dilema' && !skenario)} onClick={buat}>{sibuk ? 'Membuat…' : 'Buka lobi'}</button>
         </div>
         {err && <p className="error" role="alert">{err}</p>}
         {riwayat.length > 0 && (
