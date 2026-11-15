@@ -37,16 +37,36 @@ function TautanGabung() {
   </>
 }
 
+function InputSandi({ label, value, onChange, autoComplete }) {
+  const [lihat, setLihat] = useState(false)
+  return (
+    <label className="field">{label}
+      <div style={{ position: 'relative' }}>
+        <input className="input" type={lihat ? 'text' : 'password'} required minLength={8} autoComplete={autoComplete}
+          value={value} onChange={(e) => onChange(e.target.value)} style={{ paddingRight: 116 }} />
+        <button type="button" onClick={() => setLihat(!lihat)} aria-pressed={lihat}
+          aria-label={lihat ? `Sembunyikan ${label.toLowerCase()}` : `Lihat ${label.toLowerCase()}`}
+          style={{ position: 'absolute', right: 6, top: 6, bottom: 6, minWidth: 100, border: 'none', borderRadius: 10, background: 'var(--line)', color: 'var(--ink)', font: 'inherit', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>
+          {lihat ? 'Sembunyikan' : 'Lihat'}
+        </button>
+      </div>
+    </label>
+  )
+}
+
 function Masuk() {
   const [mode, setMode] = useState('masuk')
   const [email, setEmail] = useState('')
   const [sandi, setSandi] = useState('')
+  const [ulang, setUlang] = useState('')
   const [pesan, setPesan] = useState('')
   const [err, setErr] = useState('')
   const [sibuk, setSibuk] = useState(false)
 
   async function kirim(e) {
-    e.preventDefault(); setErr(''); setPesan(''); setSibuk(true)
+    e.preventDefault(); setErr(''); setPesan('')
+    if (mode === 'daftar' && sandi !== ulang) { setErr('Kedua kata sandi belum sama. Periksa lagi dengan tombol Lihat.'); return }
+    setSibuk(true)
     try {
       const { data: cur } = await supabase.auth.getSession()
       if (cur.session?.user?.is_anonymous) await supabase.auth.signOut()
@@ -70,11 +90,17 @@ function Masuk() {
         <form onSubmit={kirim} className="kartu-besar" style={{ width: '100%', maxWidth: 440, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <h1 style={{ fontSize: 28, fontWeight: 800 }}>{mode === 'masuk' ? 'Masuk sebagai fasilitator' : 'Daftar akun fasilitator'}</h1>
           <label className="field">EMAIL<input className="input" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
-          <label className="field">KATA SANDI<input className="input" type="password" required minLength={8} autoComplete={mode === 'masuk' ? 'current-password' : 'new-password'} value={sandi} onChange={(e) => setSandi(e.target.value)} /></label>
+          <InputSandi label="KATA SANDI" value={sandi} onChange={setSandi} autoComplete={mode === 'masuk' ? 'current-password' : 'new-password'} />
+          {mode === 'daftar' && <>
+            <InputSandi label="ULANGI KATA SANDI" value={ulang} onChange={setUlang} autoComplete="new-password" />
+            <p className="muted" style={{ fontSize: 14, margin: 0 }} aria-live="polite">
+              {ulang && sandi !== ulang ? 'Belum sama dengan kata sandi di atas.' : ulang && sandi.length >= 8 ? '✓ Kata sandi sudah sama.' : 'Minimal 8 karakter. Simpan baik-baik, belum ada fitur lupa kata sandi.'}
+            </p>
+          </>}
           {err && <p className="error" role="alert">{err}</p>}
           {pesan && <p style={{ fontWeight: 700, color: 'var(--toska)' }} role="status">{pesan}</p>}
           <button className="btn tekan" disabled={sibuk}>{sibuk ? 'Sebentar…' : mode === 'masuk' ? 'Masuk' : 'Daftar'}</button>
-          <button type="button" className="btn sekunder kecil" onClick={() => setMode(mode === 'masuk' ? 'daftar' : 'masuk')}>
+          <button type="button" className="btn sekunder kecil" onClick={() => { setMode(mode === 'masuk' ? 'daftar' : 'masuk'); setUlang(''); setErr('') }}>
             {mode === 'masuk' ? 'Belum punya akun? Daftar' : 'Sudah punya akun? Masuk'}
           </button>
         </form>
