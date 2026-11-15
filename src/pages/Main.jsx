@@ -276,12 +276,6 @@ function HasilPeserta({ q, jawab, reveal, peringkat }) {
 function Layar({ children, tengah }) {
   return (
     <div className="halaman">
-      <div className="hp" style={{ paddingBottom: 0, flex: 'none' }}>
-        <button type="button" className="btn sekunder kecil" style={{ alignSelf: 'flex-start', minHeight: 40, fontSize: 14 }}
-          onClick={() => { if (window.confirm('Keluar dari sesi ini dan kembali ke halaman input PIN?')) pindah('/') }}>
-          ← Ganti PIN
-        </button>
-      </div>
       <main className="hp" style={tengah ? { alignItems: 'center', textAlign: 'center', justifyContent: 'center', paddingTop: 8 } : { paddingTop: 8 }}>{children}</main>
     </div>
   )

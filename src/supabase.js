@@ -21,6 +21,11 @@ export const GAMES = {
 export function pesanError(e) {
   const m = e?.message || String(e)
   if (/anonymous/i.test(m) && /disabled/i.test(m)) return 'Login anonim belum diaktifkan di Supabase. Minta fasilitator mengaktifkannya.'
+  if (/rate limit/i.test(m)) return 'Terlalu banyak percobaan pendaftaran atau masuk. Tunggu sekitar 1 jam, lalu coba lagi.'
+  if (/already registered|already exists/i.test(m)) return 'Email ini sudah terdaftar. Pilih "Sudah punya akun? Masuk".'
+  if (/password should be at least/i.test(m)) return 'Kata sandi minimal 8 karakter.'
+  if (/invalid email|unable to validate email/i.test(m)) return 'Format email tidak valid.'
+  if (/failed to fetch|network/i.test(m)) return 'Koneksi internet bermasalah. Periksa jaringan, lalu coba lagi.'
   return m
 }
 

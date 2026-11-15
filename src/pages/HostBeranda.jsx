@@ -26,9 +26,13 @@ function Kepala({ kanan }) {
   )
 }
 
+function TautanPanduan() {
+  return <a href={URL_PANDUAN} target="_blank" rel="noopener noreferrer" className="btn sekunder kecil">Panduan</a>
+}
+
 function TautanGabung() {
   return <>
-    <a href={URL_PANDUAN} target="_blank" rel="noopener noreferrer" className="btn sekunder kecil">Panduan</a>
+    <TautanPanduan />
     <a href="/" onClick={(e) => { e.preventDefault(); pindah('/') }} className="btn sekunder kecil">← Halaman input PIN</a>
   </>
 }
@@ -134,7 +138,7 @@ function Panel({ user }) {
 
   return (
     <div className="host">
-      <Kepala kanan={<div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}><TautanGabung /><button className="btn sekunder kecil" onClick={() => supabase.auth.signOut()}>Keluar</button></div>} />
+      <Kepala kanan={<div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}><TautanPanduan /><button className="btn sekunder kecil" onClick={() => supabase.auth.signOut()}>Keluar</button></div>} />
       <main style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1040, width: '100%', margin: '0 auto' }}>
         <h1 style={{ fontSize: 36, fontWeight: 800 }}>Buat sesi baru</h1>
         <p className="muted" style={{ fontWeight: 700 }}>{bank ? bank.judul : 'Memuat bank soal…'}</p>
