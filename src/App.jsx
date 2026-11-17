@@ -26,7 +26,7 @@ export default function App() {
   let m
   if ((m = path.match(/^\/main\/([0-9a-f-]{36})$/))) return <Main sid={m[1]} />
   if ((m = path.match(/^\/host\/([0-9a-f-]{36})$/))) return <HostSesi sid={m[1]} />
-  if (path.startsWith('/host')) return <HostBeranda />
+  if (path.startsWith('/host')) return <HostBeranda profil={path === '/host/profil'} />
   const pin = new URLSearchParams(window.location.search).get('pin') || ''
   return <Gabung pinAwal={pin} />
 }

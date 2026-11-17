@@ -1,9 +1,12 @@
 import { Kredit, URL_PANDUAN } from '../components/Kredit.jsx'
+import { TombolInstal } from '../components/Instal.jsx'
+import { Avatar } from '../components/Avatar.jsx'
+import Profil, { ambilProfil } from './Profil.jsx'
 import { useEffect, useId, useState } from 'react'
 import { supabase, GAMES, pesanError } from '../supabase.js'
 import { pindah } from '../App.jsx'
 
-export default function HostBeranda() {
+export default function HostBeranda({ profil }) {
   const [user, setUser] = useState(undefined)
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user && !data.user.is_anonymous ? data.user : null))
@@ -11,7 +14,40 @@ export default function HostBeranda() {
     return () => sub.subscription.unsubscribe()
   }, [])
   if (user === undefined) return <div className="host"><p className="muted">Memuat…</p></div>
-  return user ? <Panel user={user} /> : <Masuk />
+  if (!user) return <Masuk />
+  return profil ? <HalamanProfil user={user} /> : <Panel user={user} />
+}
+
+function ChipProfil({ user }) {
+  const [p, setP] = useState(null)
+  useEffect(() => { ambilProfil(user.id).then(setP).catch(() => {}) }, [user.id])
+  return (
+    <button type="button" className="chip-profil" onClick={() => pindah('/host/profil')}>
+      <Avatar id={p?.avatar || 'p1'} size={36} />
+      <span>{p?.nama || 'Lengkapi profil'}</span>
+    </button>
+  )
+}
+
+function KananPanel({ user, tanpaChip }) {
+  return (
+    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+      <TombolInstal gelap />
+      <TautanPanduan />
+      {!tanpaChip && <ChipProfil user={user} />}
+      <button className="btn sekunder kecil" onClick={() => supabase.auth.signOut()}>Keluar</button>
+    </div>
+  )
+}
+
+function HalamanProfil({ user }) {
+  return (
+    <div className="host">
+      <Kepala kanan={<KananPanel user={user} tanpaChip />} />
+      <main style={{ flex: 1 }}><Profil user={user} /></main>
+      <Kredit />
+    </div>
+  )
 }
 
 function Kepala({ kanan }) {
@@ -98,7 +134,7 @@ function Masuk() {
 
   return (
     <div className="host">
-      <Kepala kanan={<div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}><TautanGabung /></div>} />
+      <Kepala kanan={<div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}><TombolInstal gelap /><TautanGabung /></div>} />
       <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <form onSubmit={kirim} className="kartu-besar" style={{ width: '100%', maxWidth: 440, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <h1 style={{ fontSize: 28, fontWeight: 800 }}>{mode === 'masuk' ? 'Masuk sebagai fasilitator' : 'Daftar akun fasilitator'}</h1>
@@ -182,7 +218,7 @@ function Panel({ user }) {
 
   return (
     <div className="host">
-      <Kepala kanan={<div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}><TautanPanduan /><button className="btn sekunder kecil" onClick={() => supabase.auth.signOut()}>Keluar</button></div>} />
+      <Kepala kanan={<KananPanel user={user} />} />
       <main style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1040, width: '100%', margin: '0 auto' }}>
         <h1 style={{ fontSize: 36, fontWeight: 800 }}>Buat sesi baru</h1>
         <p className="muted" style={{ fontWeight: 700 }}>{bank ? bank.judul : 'Memuat bank soal…'}</p>

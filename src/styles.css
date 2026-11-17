@@ -77,3 +77,7 @@ button { font-family: inherit; }
   .host { padding: 20px 16px; }
   .host .opsi-grid.dua { grid-template-columns: 1fr; }
 }
+
+.pilih-avatar:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 3px; }
+.chip-profil { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 16px 0 4px; border-radius: var(--radius-full); border: 2px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 16px; font-weight: 700; cursor: pointer; max-width: 260px; }
+.chip-profil span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

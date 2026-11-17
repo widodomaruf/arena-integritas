@@ -1,4 +1,5 @@
 import { Kredit } from '../components/Kredit.jsx'
+import { TombolInstal } from '../components/Instal.jsx'
 import { useState } from 'react'
 import { supabase, pastikanLoginAnonim, pesanError } from '../supabase.js'
 import { pindah } from '../App.jsx'
@@ -53,6 +54,7 @@ export default function Gabung({ pinAwal }) {
           Tidak perlu daftar akun. Nama hanya dipakai di papan skor sesi ini.<br />
           Fasilitator? <a href="/host" onClick={(e) => { e.preventDefault(); pindah('/host') }} style={{ color: 'var(--toska-strong)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 6px' }}>Masuk di sini</a>
         </p>
+        <div style={{ display: 'flex', justifyContent: 'center' }}><TombolInstal /></div>
         <Kredit />
       </main>
     </div>
