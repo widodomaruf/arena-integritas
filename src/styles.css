@@ -22,7 +22,7 @@ body { background: var(--bg); color: var(--ink); font-family: var(--font); font-
 h1, h2, h3, p { margin: 0; }
 button { font-family: inherit; }
 @media (prefers-reduced-motion: no-preference) {
-  .tekan { transition: transform .12s ease, box-shadow .12s ease; }
+  .tekan { transition: transform 150ms ease-out; }
 }
 .tekan:active { transform: translateY(4px); box-shadow: none !important; }
 

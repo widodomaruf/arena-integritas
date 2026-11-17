@@ -8,6 +8,7 @@ export default function Gabung({ pinAwal }) {
   const [nama, setNama] = useState(() => { try { return localStorage.getItem('ai_nama') || '' } catch { return '' } })
   const [sibuk, setSibuk] = useState(false)
   const [err, setErr] = useState('')
+  const [galat, setGalat] = useState({})
 
   async function kirim(e) {
     e.preventDefault()
@@ -37,8 +38,11 @@ export default function Gabung({ pinAwal }) {
         <form onSubmit={kirim} className="kartu-besar" style={{ display: 'flex', flexDirection: 'column', gap: 16, border: '1px solid var(--line)' }}>
           <label className="field">PIN SESI
             <input className="input pin" inputMode="numeric" autoComplete="off" maxLength={6} value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="000000" />
+              aria-invalid={!!galat.pin} aria-describedby={galat.pin ? 'galat-pin' : undefined}
+              onBlur={() => pin && pin.length !== 6 && setGalat((g) => ({ ...g, pin: 'PIN terdiri dari 6 angka. Cocokkan dengan layar depan.' }))}
+              onChange={(e) => { setPin(e.target.value.replace(/\D/g, '').slice(0, 6)); setGalat((g) => ({ ...g, pin: '' })) }} placeholder="000000" />
           </label>
+          {galat.pin && <p id="galat-pin" className="error">{galat.pin}</p>}
           <label className="field">NAMA PANGGILAN
             <input className="input" maxLength={30} value={nama} onChange={(e) => setNama(e.target.value)} placeholder="mis. Sari" />
           </label>
@@ -47,7 +51,7 @@ export default function Gabung({ pinAwal }) {
         </form>
         <p className="muted" style={{ marginTop: 'auto', fontSize: 13, textAlign: 'center', lineHeight: 1.5 }}>
           Tidak perlu daftar akun. Nama hanya dipakai di papan skor sesi ini.<br />
-          Fasilitator? <a href="/host" onClick={(e) => { e.preventDefault(); pindah('/host') }} style={{ color: 'var(--toska-strong)', fontWeight: 700 }}>Masuk di sini</a>
+          Fasilitator? <a href="/host" onClick={(e) => { e.preventDefault(); pindah('/host') }} style={{ color: 'var(--toska-strong)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 6px' }}>Masuk di sini</a>
         </p>
         <Kredit />
       </main>
