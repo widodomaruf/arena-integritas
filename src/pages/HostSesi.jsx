@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import QRCode from 'qrcode'
-import { supabase, GAMES, pesanError } from '../supabase.js'
+import { supabase, GAMES, NAMA_SESI, pesanError } from '../supabase.js'
 import { pindah } from '../App.jsx'
 import { daftarOpsi, TombolOpsi, Ikon, useSisaWaktu } from '../components/Opsi.jsx'
 import { urutanBenar, tandaEfek } from '../components/MiniGames.jsx'
@@ -39,8 +39,10 @@ export default function HostSesi({ sid }) {
       const { data: s, error } = await supabase.from('sessions').select('*').eq('id', sid).maybeSingle()
       if (error || !s || s.host_id !== u.user.id) { setErr('Sesi tidak ditemukan atau bukan milik akun ini.'); return }
       setSesi(s)
-      const { data: qs } = await supabase.from('questions').select('id, kode, game, prompt, payload, durasi_detik, refleksi, dasar_hukum').eq('bank_id', s.bank_id).eq('game', s.game).order('urutan')
       const urut = bacaLokal(`ai_sesi_${sid}`, null)
+      let kueri = supabase.from('questions').select('id, kode, game, prompt, payload, durasi_detik, refleksi, dasar_hukum').eq('bank_id', s.bank_id)
+      kueri = urut ? kueri.in('id', urut) : kueri.eq('game', s.game)
+      const { data: qs } = await kueri.order('urutan')
       const peta = new Map((qs || []).map((q) => [q.id, q]))
       setSoal(urut ? urut.map((id) => peta.get(id)).filter(Boolean) : qs || [])
       await muatPemain()
@@ -92,7 +94,7 @@ export default function HostSesi({ sid }) {
   if (!sesi) return <div className="host"><p className="muted">Memuat…</p></div>
 
   const label = sesi.status === 'lobby' || !q
-    ? GAMES[sesi.game]?.nama
+    ? NAMA_SESI[sesi.game]
     : dilema ? `${q.payload?.judul} · ${q.payload?.akhir ? 'Akhir cerita' : `Babak ${alur.length + 1}`}` : `Soal ${idx + 1} dari ${soal.length}`
 
   const kepala = (

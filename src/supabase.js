@@ -18,6 +18,34 @@ export const GAMES = {
   dilema: { nama: 'Dilema Bercabang', ket: 'Cerita bercabang, suara terbanyak menentukan akhir' },
 }
 
+// Nama untuk sesi paket (beberapa game dalam satu PIN). Tidak tampil sebagai kartu game.
+export const NAMA_SESI = { ...Object.fromEntries(Object.entries(GAMES).map(([k, g]) => [k, g.nama])), campuran: 'Paket sesi' }
+
+export const SASARAN = [
+  { id: 'sd', nama: 'SD', ket: 'Kelas 4–6' },
+  { id: 'smp', nama: 'SMP', ket: 'Siswa SMP/MTs' },
+  { id: 'sma', nama: 'SMA/SMK', ket: 'Siswa SMA/SMK/MA' },
+  { id: 'mahasiswa', nama: 'Mahasiswa', ket: 'Perguruan tinggi' },
+  { id: 'asn', nama: 'ASN/Pegawai', ket: 'Instansi & BUMN/BUMD' },
+  { id: 'umum', nama: 'Masyarakat umum', ket: 'Warga, orang tua, pelaku usaha' },
+]
+
+export const TOPIK = {
+  nilai_integritas: 'Nilai integritas',
+  kejujuran_akademik: 'Kejujuran akademik',
+  dampak_korupsi: 'Dampak korupsi',
+  gratifikasi: 'Gratifikasi',
+  pungli_layanan: 'Pungli & layanan publik',
+  pengadaan_spj: 'Pengadaan & SPJ',
+  benturan_kepentingan: 'Benturan kepentingan',
+  delik_korupsi: 'Jenis tindak pidana korupsi',
+  pelaporan: 'Cara melapor',
+  keluarga: 'Peran keluarga',
+  sejarah_kpk: 'Sejarah & peran KPK',
+}
+
+export const BANK_V2 = 'Bank Soal Arnitas v2'
+
 export function pesanError(e) {
   const m = e?.message || String(e)
   if (/anonymous/i.test(m) && /disabled/i.test(m)) return 'Login anonim belum diaktifkan di Supabase. Minta fasilitator mengaktifkannya.'
