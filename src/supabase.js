@@ -26,7 +26,7 @@ export const SASARAN = [
   { id: 'smp', nama: 'SMP', ket: 'Siswa SMP/MTs' },
   { id: 'sma', nama: 'SMA/SMK', ket: 'Siswa SMA/SMK/MA' },
   { id: 'mahasiswa', nama: 'Mahasiswa', ket: 'Perguruan tinggi' },
-  { id: 'asn', nama: 'ASN/Pegawai', ket: 'Instansi & BUMN/BUMD' },
+  { id: 'asn', nama: 'ASN/Pegawai', ket: 'Pegawai instansi pemerintah' },
   { id: 'umum', nama: 'Masyarakat umum', ket: 'Warga, orang tua, pelaku usaha' },
 ]
 
