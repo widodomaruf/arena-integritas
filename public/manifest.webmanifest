@@ -1,0 +1,23 @@
+{
+  "id": "/",
+  "name": "Arnitas · Arena Integritas",
+  "short_name": "Arnitas",
+  "description": "Game edukasi antikorupsi untuk fasilitator dan peserta. Seru mainnya, jujur sikapnya.",
+  "lang": "id",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F6F8FB",
+  "theme_color": "#0E1A30",
+  "categories": ["education", "games"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Ruang fasilitator", "short_name": "Fasilitator", "url": "/host", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}
