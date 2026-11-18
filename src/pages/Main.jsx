@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { supabase, pesanError, GAMES } from '../supabase.js'
+import { supabase, pesanError, GAMES, NAMA_SESI } from '../supabase.js'
 import { pindah } from '../App.jsx'
 import { daftarOpsi, TombolOpsi, Ikon, useSisaWaktu } from '../components/Opsi.jsx'
 import { PilihJanggal, SusunUrutan, urutanBenar, tandaEfek } from '../components/MiniGames.jsx'
@@ -125,7 +125,7 @@ export default function Main({ sid }) {
       <Layar tengah>
         <img src="/bening-mikir.svg" alt="Bening menunggu" width="160" height="160" />
         <h1 style={{ fontSize: 26, fontWeight: 800 }}>Kamu sudah masuk, {saya.nama}!</h1>
-        <p className="muted" style={{ fontWeight: 700 }}>Lihat namamu di layar depan. {GAMES[sesi.game]?.nama} mulai saat fasilitator siap.</p>
+        <p className="muted" style={{ fontWeight: 700 }}>Lihat namamu di layar depan. {NAMA_SESI[sesi.game]} mulai saat fasilitator siap.</p>
         {footer}
       </Layar>
     )
