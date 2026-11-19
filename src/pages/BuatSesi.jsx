@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { supabase, GAMES, NAMA_SESI, SASARAN, TOPIK, BANK_V2, pesanError } from '../supabase.js'
+import { supabase, GAMES, NAMA_SESI, SASARAN, TOPIK, BANK_V2, GAME_PILIHAN, estimasiSesi, pesanError } from '../supabase.js'
 import { pindah } from '../App.jsx'
 
 const acakUrut = (arr) => arr.map((v) => [Math.random(), v]).sort((a, b) => a[0] - b[0]).map((x) => x[1])
@@ -32,7 +32,8 @@ export default function BuatSesi({ user }) {
   const [bank, setBank] = useState(null)
   const [soal, setSoal] = useState([])
   const [paket, setPaket] = useState([])
-  const [riwayat, setRiwayat] = useState([])
+  const [durasi, setDurasi] = useState(() => baca('ai_durasi', '20'))
+  const [durasiLain, setDurasiLain] = useState(() => Number(baca('ai_durasi_lain', '25')) || 25)
   const [sasaran, setSasaran] = useState(() => baca('ai_sasaran', ''))
   const [mode, setMode] = useState(() => baca('ai_mode_buat', 'paket'))
   const [pilihPaket, setPilihPaket] = useState('')
@@ -51,14 +52,12 @@ export default function BuatSesi({ user }) {
       setBank(b)
       if (b) {
         const { data: qs, error } = await supabase.from('questions')
-          .select('id, game, topik, sasaran, payload, urutan').eq('bank_id', b.id).eq('status', 'terverifikasi').order('urutan')
+          .select('id, game, topik, sasaran, payload, urutan, durasi_detik').eq('bank_id', b.id).eq('status', 'terverifikasi').order('urutan')
         if (error) setErr(pesanError(error))
         setSoal(qs || [])
       }
       const { data: pk } = await supabase.from('paket_sesi').select('*').order('urutan')
       setPaket(pk || [])
-      const { data: s } = await supabase.from('sessions').select('id, pin, game, status, created_at').eq('host_id', user.id).neq('status', 'ended').order('created_at', { ascending: false }).limit(5)
-      setRiwayat(s || [])
     })()
   }, [user.id])
 
@@ -77,6 +76,9 @@ export default function BuatSesi({ user }) {
     c.dilema = cerita.filter(sesuaiTopik).length
     return c
   }, [untukSasaran, cerita, topik])
+  const detikSoal = durasi === 'lain' ? Math.min(30, Math.max(5, Math.round(durasiLain) || 20)) : Number(durasi)
+  const gantiDurasi = (d) => { setDurasi(d); simpan('ai_durasi', d) }
+  const gantiLain = (v) => { const n = Math.min(30, Math.max(0, Math.round(Number(v) || 0))); setDurasiLain(n); simpan('ai_durasi_lain', String(n)) }
   const paketSasaran = paket.filter((p) => p.sasaran === sasaran)
   const gameTersedia = Object.keys(GAMES).filter((k) => hitungGame[k] > 0)
 
@@ -87,16 +89,27 @@ export default function BuatSesi({ user }) {
   function gantiMode(m) { setMode(m); simpan('ai_mode_buat', m) }
   const toggleTopik = (t) => setTopik((x) => (x.includes(t) ? x.filter((y) => y !== t) : [...x, t]))
 
-  function susunPaket(p) {
+  function susunPaket(p, acakPilih = true) {
     const dipakai = new Set()
     const ids = []
     for (const l of p.langkah) {
-      const kolam = acakUrut(untukSasaran.filter((q) => q.game === l.game && q.game !== 'dilema' && !dipakai.has(q.id)
-        && (!l.topik?.length || l.topik.includes(q.topik))))
+      const saring = untukSasaran.filter((q) => q.game === l.game && q.game !== 'dilema' && !dipakai.has(q.id)
+        && (!l.topik?.length || l.topik.includes(q.topik)))
+      const kolam = acakPilih ? acakUrut(saring) : saring
       kolam.slice(0, l.jumlah).forEach((q) => { dipakai.add(q.id); ids.push(q.id) })
     }
     return ids
   }
+
+  const petaSoal = useMemo(() => new Map(soal.map((q) => [q.id, q])), [soal])
+  const hitungEstimasi = (ids) => estimasiSesi(ids.map((id) => petaSoal.get(id)).filter(Boolean), detikSoal)
+  const idsAtur = useMemo(() => {
+    if (!game) return []
+    if (game === 'dilema') return skenario ? soal.filter((q) => q.game === 'dilema' && q.payload?.skenario_id === skenario).map((q) => q.id) : []
+    return untukSasaran.filter((q) => q.game === game && sesuaiTopik(q)).slice(0, n).map((q) => q.id)
+  }, [game, skenario, n, topik, untukSasaran, soal])
+  const paketTerpilih = paketSasaran.find((x) => x.id === pilihPaket)
+  const estimasiPilihan = mode === 'paket' ? (paketTerpilih ? hitungEstimasi(susunPaket(paketTerpilih, false)) : null) : (idsAtur.length ? hitungEstimasi(idsAtur) : null)
 
   async function buat() {
     setErr('')
@@ -125,12 +138,16 @@ export default function BuatSesi({ user }) {
     try {
       const { data, error } = await supabase.rpc('create_session', { p_bank: bank.id, p_game: gameSesi })
       if (error) throw error
+      const judulSesi = judulPaket || (gameSesi === 'dilema' ? cerita.find((c) => c.id === skenario)?.judul : '') || NAMA_SESI[gameSesi]
+      const { error: e2 } = await supabase.from('sessions').update({ durasi_detik: detikSoal, judul: judulSesi, soal_ids: ids }).eq('id', data.id)
+      if (e2) throw e2
       simpan(`ai_sesi_${data.id}`, JSON.stringify(ids))
       if (judulPaket) simpan(`ai_paket_${data.id}`, judulPaket)
       pindah(`/host/${data.id}`)
     } catch (e) { setErr(pesanError(e)) } finally { setSibuk(false) }
   }
 
+  const labelEstimasi = (e) => `${e.soal} soal · ± ${e.menit} menit`
   const ringkasLangkah = (p) => p.langkah.map((l) => `${GAMES[l.game]?.nama} ${l.jumlah}`).join(' · ')
 
   return (
@@ -159,7 +176,7 @@ export default function BuatSesi({ user }) {
               {paketSasaran.map((p) => (
                 <button key={p.id} type="button" role="radio" aria-checked={pilihPaket === p.id} onClick={() => setPilihPaket(p.id)} className="kartu-besar"
                   style={{ textAlign: 'left', cursor: 'pointer', color: 'var(--ink)', border: `3px solid ${pilihPaket === p.id ? 'var(--toska)' : 'var(--line)'}`, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <span className="label">{p.durasi_menit} menit</span>
+                  <span className="label">{labelEstimasi(hitungEstimasi(susunPaket(p, false)))}</span>
                   <span style={{ fontSize: 20, fontWeight: 800 }}>{p.judul}</span>
                   {p.deskripsi && <span className="muted" style={{ fontWeight: 600, fontSize: 15 }}>{p.deskripsi}</span>}
                   <span style={{ fontWeight: 700, fontSize: 15 }}>{ringkasLangkah(p)}</span>
@@ -222,23 +239,34 @@ export default function BuatSesi({ user }) {
       )}
 
       {sasaran && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-start' }}>
+        <Langkah no="3" judul="Berapa detik waktu tiap soal?">
+          <div role="radiogroup" aria-label="Waktu tiap soal" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+            {['15', '20', '30'].map((d) => <Chip key={d} aktif={durasi === d} onClick={() => gantiDurasi(d)}>{d} detik</Chip>)}
+            <Chip aktif={durasi === 'lain'} onClick={() => gantiDurasi('lain')}>Atur sendiri</Chip>
+            {durasi === 'lain' && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
+                <span className="sr-only">Waktu tiap soal dalam detik</span>
+                <input className="input" type="number" inputMode="numeric" min={5} max={30} value={durasiLain || ''} onChange={(e) => gantiLain(e.target.value)}
+                  onBlur={() => gantiLain(Math.max(5, durasiLain))} style={{ width: 96, height: 48, fontSize: 18 }} /> detik (5–30)
+              </label>
+            )}
+          </div>
+          <p className="muted" style={{ fontSize: 15 }}>Berlaku untuk soal pilihan ganda ({GAME_PILIHAN.map((g) => GAMES[g].nama).join(', ')}). Detektif SPJ, Susun Alur, dan Dilema memakai waktu bawaan karena perlu membaca lebih lama.</p>
+        </Langkah>
+      )}
+
+      {sasaran && (
+        <div className="kartu-besar" style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-start' }}>
+          <span className="label">Ringkasan sesi</span>
+          {estimasiPilihan ? (
+            <>
+              <p style={{ fontSize: 22, fontWeight: 800 }}>{estimasiPilihan.soal} {game === 'dilema' && mode === 'atur' ? 'babak' : 'soal'} · ± {estimasiPilihan.menit} menit</p>
+              <p className="muted" style={{ fontSize: 15 }}>Perkiraan sudah termasuk pembahasan dan papan skor, belum termasuk diskusi panjang. {estimasiPilihan.menit > 45 ? 'Cukup panjang. Kurangi jumlah soal kalau waktu fasilitasi terbatas.' : ''}</p>
+            </>
+          ) : <p className="muted">{mode === 'paket' ? 'Pilih paket untuk melihat jumlah soal dan perkiraan waktunya.' : 'Pilih permainan untuk melihat jumlah soal dan perkiraan waktunya.'}</p>}
           {err && <p className="error" role="alert">{err}</p>}
           <button className="btn tekan" disabled={!bank || sibuk} onClick={buat}>{sibuk ? 'Membuat…' : 'Buka lobi'}</button>
         </div>
-      )}
-
-      {riwayat.length > 0 && (
-        <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <h2 className="label">Sesi yang masih terbuka</h2>
-          {riwayat.map((s) => (
-            <a key={s.id} href={`/host/${s.id}`} onClick={(e) => { e.preventDefault(); pindah(`/host/${s.id}`) }} className="baris-skor" style={{ textDecoration: 'none', color: 'var(--ink)', fontSize: 18 }}>
-              <span style={{ fontWeight: 800 }}>PIN {s.pin}</span>
-              <span className="muted" style={{ flex: 1 }}>{baca(`ai_paket_${s.id}`, '') || NAMA_SESI[s.game] || s.game}</span>
-              <span className="label">{s.status}</span>
-            </a>
-          ))}
-        </section>
       )}
     </main>
   )

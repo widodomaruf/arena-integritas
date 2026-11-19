@@ -106,3 +106,41 @@ button { font-family: inherit; }
 .pilih-avatar:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 3px; }
 .chip-profil { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 16px 0 4px; border-radius: var(--radius-full); border: 2px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 16px; font-weight: 700; cursor: pointer; max-width: 260px; }
 .chip-profil span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Daftar sesi & laporan */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.daftar-sesi { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.baris-sesi { display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap; padding: 14px 18px; border-radius: var(--radius-md); background: var(--surface); }
+.info-sesi { flex: 1 1 240px; min-width: 0; display: flex; flex-direction: column; gap: 2px; color: var(--ink); text-decoration: none; font-size: 18px; }
+.konfirmasi-hapus { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+.laporan { --ink: #14284B; --ink-muted: #556274; --line: #D9E0EA; background: #fff; color: var(--ink); border-radius: var(--radius-md); padding: 32px; max-width: 860px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+.laporan h1 { font-size: 28px; font-weight: 800; }
+.laporan h2 { font-size: 18px; font-weight: 800; margin-bottom: 8px; }
+.laporan p { margin: 2px 0; color: var(--ink-muted); font-weight: 600; }
+.laporan-label { font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #0B7F73; }
+.laporan-kop { border-bottom: 3px solid #2CC4B0; padding-bottom: 14px; display: flex; flex-direction: column; gap: 4px; }
+.laporan-ringkas { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
+.laporan-ringkas div { border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 2px; }
+.laporan-ringkas b { font-size: 24px; font-weight: 800; }
+.laporan-ringkas span { font-size: 14px; color: var(--ink-muted); font-weight: 600; }
+.laporan table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.laporan th { text-align: left; font-weight: 800; background: #F1F5F9; }
+.laporan th, .laporan td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.laporan tr { break-inside: avoid; }
+.laporan-kecil { color: var(--ink-muted); font-size: 13px; white-space: nowrap; }
+.laporan-kaki { font-size: 13px; color: var(--ink-muted); border-top: 1px solid var(--line); padding-top: 10px; }
+@media (min-width: 761px) { .hanya-hp { display: none; } }
+@media (max-width: 760px) {
+  .kol-jenis { display: none; }
+  .laporan { padding: 18px; }
+  .laporan table { font-size: 14px; }
+}
+@media print {
+  @page { size: A4; margin: 14mm; }
+  html, body { background: #fff !important; }
+  .no-print { display: none !important; }
+  .halaman-laporan { padding: 0; background: #fff; min-height: 0; }
+  .laporan { padding: 0; border-radius: 0; max-width: none; }
+  .laporan th { background: #F1F5F9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import QRCode from 'qrcode'
-import { supabase, GAMES, NAMA_SESI, pesanError } from '../supabase.js'
+import { supabase, GAMES, NAMA_SESI, pesanError, durasiEfektif } from '../supabase.js'
 import { pindah } from '../App.jsx'
 import { daftarOpsi, TombolOpsi, Ikon, useSisaWaktu } from '../components/Opsi.jsx'
 import { urutanBenar, tandaEfek } from '../components/MiniGames.jsx'
@@ -40,7 +40,7 @@ export default function HostSesi({ sid }) {
       const { data: s, error } = await supabase.from('sessions').select('*').eq('id', sid).maybeSingle()
       if (error || !s || s.host_id !== u.user.id) { setErr('Sesi tidak ditemukan atau bukan milik akun ini.'); return }
       setSesi(s)
-      const urut = bacaLokal(`ai_sesi_${sid}`, null)
+      const urut = s.soal_ids || bacaLokal(`ai_sesi_${sid}`, null)
       let kueri = supabase.from('questions').select('id, kode, game, prompt, payload, durasi_detik, refleksi, dasar_hukum').eq('bank_id', s.bank_id)
       kueri = urut ? kueri.in('id', urut) : kueri.eq('game', s.game)
       const { data: qs } = await kueri.order('urutan')
@@ -130,6 +130,13 @@ export default function HostSesi({ sid }) {
     </header>
   )
 
+  const aksiAkhir = (
+    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+      <button className="btn sekunder kecil" onClick={() => pindah('/host')}>Kembali ke ruang fasilitator</button>
+      <button className="btn tekan" onClick={() => pindah(`/host/riwayat/${sid}`)}>Lihat laporan &amp; cetak PDF</button>
+    </div>
+  )
+
   let isi
   if (sesi.status === 'lobby') {
     isi = (
@@ -159,7 +166,7 @@ export default function HostSesi({ sid }) {
   } else if (q && dilema && q.payload?.akhir && sesi.status !== 'ended') {
     isi = <AkhirCerita q={q} alur={alur} indeks={indeks} aksi={<button className="btn tekan" disabled={sibuk} onClick={selesai}>Tutup cerita</button>} />
   } else if (sesi.status === 'running' && q) {
-    isi = <SoalTayang key={q.id} q={q} sid={sid} totalPemain={pemain.length} onHabis={buka} sibuk={sibuk} />
+    isi = <SoalTayang key={q.id} q={q} durasi={durasiEfektif(q, sesi)} sid={sid} totalPemain={pemain.length} onHabis={buka} sibuk={sibuk} />
   } else if (sesi.status === 'reveal' && q && !tampilSkor) {
     isi = <Pembahasan key={q.id} q={q} sid={sid} sibuk={sibuk} onLanjut={() => setTampilSkor(true)} onLanjutCerita={lanjutCerita} />
   } else if (sesi.status === 'reveal' && q && tampilSkor) {
@@ -168,11 +175,9 @@ export default function HostSesi({ sid }) {
       <button className="btn tekan" disabled={sibuk} onClick={() => (terakhir ? selesai() : tayang(idx + 1))}>{terakhir ? 'Lihat juara' : 'Soal berikutnya'}</button>
     } />
   } else if (dilema) {
-    isi = <AkhirCerita q={q} alur={alur} indeks={indeks} aksi={<button className="btn sekunder kecil" onClick={() => pindah('/host')}>Kembali ke ruang fasilitator</button>} />
+    isi = <AkhirCerita q={q} alur={alur} indeks={indeks} aksi={aksiAkhir} />
   } else {
-    isi = <PapanSkor pemain={pemain} judul="Juara Arnitas" akhir aksi={
-      <button className="btn sekunder kecil" onClick={() => pindah('/host')}>Kembali ke ruang fasilitator</button>
-    } />
+    isi = <PapanSkor pemain={pemain} judul="Juara Arnitas" akhir aksi={aksiAkhir} />
   }
 
   return (
@@ -217,9 +222,9 @@ function KontenSoal({ q }) {
   )
 }
 
-function SoalTayang({ q, sid, totalPemain, onHabis, sibuk }) {
+function SoalTayang({ q, durasi, sid, totalPemain, onHabis, sibuk }) {
   const [mulai] = useState(() => Date.now())
-  const sisa = useSisaWaktu(mulai, q.durasi_detik)
+  const sisa = useSisaWaktu(mulai, durasi)
   const [masuk, setMasuk] = useState(0)
   const dipanggil = useRef(false)
   useEffect(() => {
