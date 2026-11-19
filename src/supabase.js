@@ -64,3 +64,19 @@ export async function pastikanLoginAnonim() {
   if (error) throw error
   return d.session
 }
+
+// Game pilihan ganda: waktu per soal ikut pengaturan sesi (5-30 detik). Game lain memakai waktu bawaan soal.
+export const GAME_PILIHAN = ['kuis_live', 'terima_tolak', 'tebak_delik']
+export const durasiEfektif = (q, sesi) => (GAME_PILIHAN.includes(q?.game) && sesi?.durasi_detik ? sesi.durasi_detik : q?.durasi_detik ?? 20)
+// Perkiraan jeda per soal di luar waktu menjawab: pembahasan, papan skor, diskusi.
+const JEDA = { dilema: 90, detektif_spj: 60, susun_alur: 60 }
+export const jedaSoal = (game) => JEDA[game] ?? 30
+export function estimasiSesi(daftar, detikPilihan) {
+  let detik = 0
+  for (const q of daftar) {
+    if (q.game === 'dilema' && !String(q.payload?.node || '').startsWith('N')) continue // simpul akhir tidak dihitung
+    detik += (GAME_PILIHAN.includes(q.game) ? detikPilihan : q.durasi_detik ?? 20) + jedaSoal(q.game)
+  }
+  const soal = daftar.filter((q) => q.game !== 'dilema' || String(q.payload?.node || '').startsWith('N')).length
+  return { soal, menit: Math.max(1, Math.round(detik / 60)) }
+}

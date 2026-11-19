@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { supabase, pesanError, GAMES, NAMA_SESI } from '../supabase.js'
+import { supabase, pesanError, GAMES, NAMA_SESI, durasiEfektif } from '../supabase.js'
 import { pindah } from '../App.jsx'
 import { daftarOpsi, TombolOpsi, Ikon, useSisaWaktu } from '../components/Opsi.jsx'
 import { PilihJanggal, SusunUrutan, urutanBenar, tandaEfek } from '../components/MiniGames.jsx'
@@ -78,7 +78,7 @@ export default function Main({ sid }) {
     })()
   }, [sesi?.status, sesi?.current_question_id])
 
-  const sisa = useSisaWaktu(sesi?.status === 'running' ? diterima : null, q?.durasi_detik ?? 20)
+  const sisa = useSisaWaktu(sesi?.status === 'running' ? diterima : null, q ? durasiEfektif(q, sesi) : 20)
 
   async function kirimJawaban(jawaban) {
     if (jawab || kirim) return

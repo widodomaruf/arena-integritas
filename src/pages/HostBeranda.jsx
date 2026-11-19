@@ -3,6 +3,7 @@ import { TombolInstal } from '../components/Instal.jsx'
 import { Avatar } from '../components/Avatar.jsx'
 import Profil, { ambilProfil } from './Profil.jsx'
 import BuatSesi from './BuatSesi.jsx'
+import SesiSaya from './SesiSaya.jsx'
 import { useEffect, useId, useState } from 'react'
 import { supabase, GAMES, pesanError } from '../supabase.js'
 import { pindah } from '../App.jsx'
@@ -170,6 +171,7 @@ function Panel({ user }) {
     <div className="host">
       <Kepala kanan={<KananPanel user={user} />} />
       <BuatSesi user={user} />
+      <SesiSaya user={user} />
       <Kredit />
     </div>
   )

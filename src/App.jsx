@@ -3,6 +3,7 @@ import Gabung from './pages/Gabung.jsx'
 import Main from './pages/Main.jsx'
 import HostBeranda from './pages/HostBeranda.jsx'
 import HostSesi from './pages/HostSesi.jsx'
+import LaporanSesi from './pages/LaporanSesi.jsx'
 
 export function pindah(path) {
   window.history.pushState({}, '', path)
@@ -26,6 +27,7 @@ export default function App() {
   let m
   if ((m = path.match(/^\/main\/([0-9a-f-]{36})$/))) return <Main sid={m[1]} />
   if ((m = path.match(/^\/host\/([0-9a-f-]{36})$/))) return <HostSesi sid={m[1]} />
+  if ((m = path.match(/^\/host\/riwayat\/([0-9a-f-]{36})$/))) return <LaporanSesi sid={m[1]} />
   if (path.startsWith('/host')) return <HostBeranda profil={path === '/host/profil'} />
   const pin = new URLSearchParams(window.location.search).get('pin') || ''
   return <Gabung pinAwal={pin} />
