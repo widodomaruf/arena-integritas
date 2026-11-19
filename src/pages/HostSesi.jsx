@@ -134,7 +134,7 @@ export default function HostSesi({ sid }) {
   if (sesi.status === 'lobby') {
     isi = (
       <>
-        <main style={{ flex: 1, display: 'flex', gap: 40, alignItems: 'center', flexWrap: 'wrap' }}>
+        <main style={{ flex: 1, display: 'flex', gap: 'clamp(20px, 4vw, 40px)', alignItems: 'center', flexWrap: 'wrap' }}>
           <section style={{ flex: '1 1 480px', display: 'flex', flexDirection: 'column', gap: 16 }}>
             <p className="muted" style={{ fontSize: 26, fontWeight: 700 }}>Buka di HP kamu</p>
             <p style={{ fontSize: 'clamp(24px, 3vw, 40px)', fontWeight: 800, color: 'var(--toska)', wordBreak: 'break-all' }}>{window.location.host}</p>
@@ -190,7 +190,7 @@ function KontenSoal({ q }) {
     return (
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
         {q.payload?.konteks && <p className="muted" style={{ fontSize: 22, fontWeight: 700 }}>{q.payload.konteks}</p>}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(380px, 100%), 1fr))', gap: 12 }}>
           {(q.payload?.elemen || []).map((e) => (
             <div key={e.no} className="kartu" style={{ display: 'flex', gap: 14, alignItems: 'baseline', fontSize: 22, fontWeight: 700 }}>
               <span style={{ color: 'var(--kuning)', fontWeight: 800 }}>{e.no}</span><span>{e.teks}</span>
@@ -202,7 +202,7 @@ function KontenSoal({ q }) {
   }
   if (q.game === 'susun_alur') {
     return (
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: 12, alignContent: 'start' }}>
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(380px, 100%), 1fr))', gap: 12, alignContent: 'start' }}>
         {(q.payload?.langkah || []).map((l) => (
           <div key={l.id} className="kartu" style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.35 }}>{l.teks}</div>
         ))}
@@ -211,7 +211,7 @@ function KontenSoal({ q }) {
   }
   const opsi = daftarOpsi(q)
   return (
-    <div className={`opsi-grid ${opsi.length <= 4 ? 'dua' : ''}`} style={{ flex: 1, gridTemplateColumns: opsi.length > 4 ? 'repeat(auto-fit, minmax(320px, 1fr))' : q.game === 'dilema' ? '1fr' : undefined }}>
+    <div className={`opsi-grid ${opsi.length <= 4 ? 'dua' : ''}`} style={{ flex: 1, gridTemplateColumns: opsi.length > 4 ? 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))' : q.game === 'dilema' ? '1fr' : undefined }}>
       {opsi.map((o) => <TombolOpsi key={o.key} o={o} disabled />)}
     </div>
   )
@@ -236,7 +236,7 @@ function SoalTayang({ q, sid, totalPemain, onHabis, sibuk }) {
   const instruksi = { detektif_spj: 'Temukan bagian yang janggal di HP kalian', susun_alur: 'Susun langkahnya di HP kalian', dilema: 'Apa yang sebaiknya dilakukan? Pilih di HP kalian' }[q.game]
   return (
     <>
-      <section style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
+      <section className="baris-timer">
         <div className="timer" role="timer" aria-label={`Sisa waktu ${sisa} detik`}>{sisa}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <h1 className="host-soal" style={q.game === 'dilema' ? { fontSize: 'clamp(24px, 2.6vw, 34px)', lineHeight: 1.3 } : undefined}>{q.prompt}</h1>
@@ -244,7 +244,7 @@ function SoalTayang({ q, sid, totalPemain, onHabis, sibuk }) {
         </div>
       </section>
       <KontenSoal q={q} />
-      <footer style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <footer style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <span className="muted" style={{ fontWeight: 700, fontSize: 20 }}><b style={{ color: 'var(--ink)' }}>{masuk}</b> / {totalPemain} menjawab</span>
         <button className="btn sekunder kecil" disabled={sibuk} onClick={() => { dipanggil.current = true; onHabis() }}>Tutup &amp; tampilkan hasil</button>
       </footer>
@@ -282,8 +282,8 @@ function Pembahasan({ q, sid, sibuk, onLanjut, onLanjutCerita }) {
         {(q.payload?.elemen || []).map((e) => {
           const janggal = Array.isArray(kunci) && kunci.includes(e.no)
           return (
-            <div key={e.no} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '8px 12px', borderRadius: 16, opacity: janggal ? 1 : 0.5, outline: janggal ? '3px solid var(--salah)' : 'none' }}>
-              <span style={{ flex: 1, fontSize: 19, fontWeight: 700 }}><b style={{ color: 'var(--kuning)' }}>{e.no}.</b> {e.teks}</span>
+            <div key={e.no} className="hasil-baris" style={{ opacity: janggal ? 1 : 0.5, outline: janggal ? '3px solid var(--salah)' : 'none' }}>
+              <span className="hasil-label" style={{ flex: '1 1 220px', width: 'auto', fontSize: 19, fontWeight: 700, whiteSpace: 'normal' }}><b style={{ color: 'var(--kuning)' }}>{e.no}.</b> {e.teks}</span>
               <span className="muted" style={{ fontWeight: 800, fontSize: 18 }}>{hitung[e.no] || 0} menandai</span>
               {janggal && <span className="chip salah"><Ikon nama="salah" size={16} />Janggal</span>}
             </div>
@@ -317,10 +317,10 @@ function Pembahasan({ q, sid, sibuk, onLanjut, onLanjutCerita }) {
           const n = hitung[o.key] || 0
           const sorot = q.game === 'dilema' ? mayoritas?.key === o.key : JSON.stringify(o.key) === JSON.stringify(kunci)
           return (
-            <div key={o.key} style={{ display: 'flex', alignItems: 'center', gap: 16, opacity: sorot ? 1 : 0.55, padding: '8px 12px', borderRadius: 16, outline: sorot ? '3px solid var(--toska)' : 'none' }}>
-              <span style={{ width: q.game === 'dilema' ? 360 : 220, fontSize: 18, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: q.game === 'dilema' ? 'normal' : 'nowrap' }}>{o.huruf ? `${o.huruf} · ` : ''}{o.label}</span>
+            <div key={o.key} className="hasil-baris" style={{ opacity: sorot ? 1 : 0.55, outline: sorot ? '3px solid var(--toska)' : 'none' }}>
+              <span className={`hasil-label ${q.game === 'dilema' ? 'lebar' : ''}`}>{o.huruf ? `${o.huruf} · ` : ''}{o.label}</span>
               <Bar n={n} total={total} warna={`var(--opsi-${o.kelas === 'netral' ? 'a' : o.kelas})`} />
-              <span style={{ width: 36, textAlign: 'right', fontSize: 22, fontWeight: 800 }}>{n}</span>
+              <span className="hasil-n">{n}</span>
               {q.game === 'dilema' && kunci && <span className={`chip ${kunci[o.key] > 0 ? 'benar' : 'salah'}`}>{tandaEfek(kunci[o.key])}</span>}
               {q.game !== 'dilema' && sorot && <span className="chip benar"><Ikon nama="benar" size={16} />Benar</span>}
             </div>
@@ -341,9 +341,9 @@ function Pembahasan({ q, sid, sibuk, onLanjut, onLanjutCerita }) {
       <main style={{ flex: 1, display: 'flex', gap: 32, flexWrap: 'wrap' }}>
         <section aria-label="Hasil jawaban" style={{ flex: '1 1 520px', display: 'flex', flexDirection: 'column', gap: 10, justifyContent: 'center' }}>{kiri}</section>
         <aside className="kartu-besar" style={{ flex: '0 1 460px', display: 'flex', flexDirection: 'column', gap: 14, position: 'relative' }}>
-          <img src="/bening-mikir.svg" alt="" width="110" height="110" style={{ position: 'absolute', right: 12, top: -28 }} />
+          <img className="maskot-bahas" src="/bening-mikir.svg" alt="" width="110" height="110" />
           <span className="label" style={{ color: 'var(--toska)' }}>Kenapa ini penting?</span>
-          <p style={{ paddingRight: 90, fontSize: 20, lineHeight: 1.4, fontWeight: 700 }}>{teks || '…'}</p>
+          <p className="teks-bahas">{teks || '…'}</p>
           {(rev?.dasar_hukum || q.dasar_hukum) && <p className="muted" style={{ fontSize: 15, lineHeight: 1.5 }}>{rev?.dasar_hukum || q.dasar_hukum}</p>}
           {rev?.refleksi && (
             <div style={{ marginTop: 'auto', padding: '14px 16px', borderRadius: 16, background: 'var(--bg)' }}>
@@ -362,7 +362,7 @@ function AkhirCerita({ q, alur, indeks, aksi }) {
   const nada = indeks >= 70 ? 'Integritas terjaga!' : indeks >= 40 ? 'Ada yang perlu dikoreksi.' : 'Integritas runtuh.'
   return (
     <>
-      <main style={{ flex: 1, display: 'flex', gap: 40, alignItems: 'center', flexWrap: 'wrap' }}>
+      <main style={{ flex: 1, display: 'flex', gap: 'clamp(20px, 4vw, 40px)', alignItems: 'center', flexWrap: 'wrap' }}>
         <section style={{ flex: '1 1 560px', display: 'flex', flexDirection: 'column', gap: 18 }}>
           <span className="label" style={{ fontSize: 16 }}>Akhir cerita · {q?.payload?.judul}</span>
           {q && <h1 style={{ fontSize: 'clamp(26px, 2.8vw, 38px)', lineHeight: 1.3, fontWeight: 800 }}>{q.prompt}</h1>}
@@ -394,15 +394,15 @@ function PapanSkor({ pemain, judul, aksi, akhir }) {
   const top = useMemo(() => pemain.slice(0, 5), [pemain])
   return (
     <>
-      <main style={{ flex: 1, display: 'flex', gap: 40, alignItems: 'center', flexWrap: 'wrap' }}>
+      <main style={{ flex: 1, display: 'flex', gap: 'clamp(20px, 4vw, 40px)', alignItems: 'center', flexWrap: 'wrap' }}>
         <section style={{ flex: '1 1 520px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           <h1 style={{ fontSize: 'clamp(36px, 4.4vw, 56px)', fontWeight: 800, letterSpacing: '-.02em', marginBottom: 8 }}>{judul}</h1>
           {top.map((p, i) => (
             <div key={p.id} className={`baris-skor ${i === 0 ? 'juara' : ''}`}>
-              <span style={{ width: 36, fontWeight: 800 }}>{i + 1}</span>
-              <span style={{ flex: 1 }}>{p.nama}</span>
+              <span style={{ minWidth: 28, fontWeight: 800 }}>{i + 1}</span>
+              <span style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{p.nama}</span>
               {p.streak >= 2 && <span className="chip" style={{ background: i === 0 ? '#0E1A30' : 'var(--line)', color: 'var(--kuning)' }}><Ikon nama="api" size={16} />{p.streak} beruntun</span>}
-              <span style={{ width: 120, textAlign: 'right', fontWeight: 800 }}>{angka(p.skor)}</span>
+              <span style={{ minWidth: 80, textAlign: 'right', fontWeight: 800 }}>{angka(p.skor)}</span>
             </div>
           ))}
           {top.length === 0 && <p className="muted">Belum ada peserta.</p>}

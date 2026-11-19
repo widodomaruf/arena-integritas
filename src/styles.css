@@ -73,9 +73,34 @@ button { font-family: inherit; }
 .baris-skor.juara { background: var(--kuning); color: #0E1A30; font-weight: 800; }
 .bar { flex: 1; height: 40px; border-radius: var(--radius-sm); background: var(--surface); overflow: hidden; }
 .bar > div { height: 100%; border-radius: var(--radius-sm); }
+.host main > * { min-width: 0; }
+.baris-timer { display: flex; align-items: center; gap: 32px; }
+.baris-timer > div:last-child { min-width: 0; }
+.hasil-baris { display: flex; align-items: center; gap: 16px; padding: 8px 12px; border-radius: 16px; }
+.hasil-label { width: 220px; flex: none; font-size: 18px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hasil-label.lebar { width: 360px; white-space: normal; }
+.hasil-n { width: 36px; text-align: right; font-size: 22px; font-weight: 800; }
+.maskot-bahas { position: absolute; right: 12px; top: -28px; }
+.teks-bahas { padding-right: 90px; font-size: 20px; line-height: 1.4; font-weight: 700; }
 @media (max-width: 760px) {
-  .host { padding: 20px 16px; }
+  .host { padding: 16px 14px 24px; gap: 20px; }
   .host .opsi-grid.dua { grid-template-columns: 1fr; }
+  .host .opsi { min-height: 64px; padding: 12px 16px; font-size: 18px; }
+  .host main { align-content: start; gap: 20px !important; }
+  .host-soal { font-size: clamp(22px, 6vw, 28px); }
+  .host-header { gap: 10px; }
+  .brand img { width: 36px; height: 36px; }
+  .baris-timer { gap: 16px; }
+  .timer { width: 72px; height: 72px; border-width: 7px; font-size: 28px; }
+  .pin-besar { font-size: clamp(44px, 15vw, 64px); }
+  .kartu-besar { padding: 18px; }
+  .baris-skor { gap: 12px; padding: 12px 14px; font-size: 18px; }
+  .hasil-baris { flex-wrap: wrap; gap: 6px 12px; padding: 8px 10px; }
+  .hasil-label, .hasil-label.lebar { width: auto; flex: 1 1 100%; white-space: normal; overflow: visible; font-size: 17px; }
+  .hasil-baris .bar { flex: 1 1 0; min-width: 0; height: 28px; }
+  .hasil-n { width: auto; min-width: 28px; font-size: 20px; }
+  .maskot-bahas { width: 72px; height: 72px; top: -22px; right: 8px; }
+  .teks-bahas { padding-right: 56px; font-size: 18px; }
 }
 
 .pilih-avatar:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 3px; }
