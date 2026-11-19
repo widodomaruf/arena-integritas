@@ -50,10 +50,17 @@ export default function Gabung({ pinAwal }) {
           {err && <p className="error" role="alert">{err}</p>}
           <button className="btn tekan" disabled={sibuk}>{sibuk ? 'Masuk…' : 'Gabung'}</button>
         </form>
-        <p className="muted" style={{ marginTop: 'auto', fontSize: 13, textAlign: 'center', lineHeight: 1.5 }}>
-          Tidak perlu daftar akun. Nama hanya dipakai di papan skor sesi ini.<br />
-          Fasilitator? <a href="/host" onClick={(e) => { e.preventDefault(); pindah('/host') }} style={{ color: 'var(--toska-strong)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 6px' }}>Masuk di sini</a>
+        <p className="muted" style={{ fontSize: 13, textAlign: 'center', lineHeight: 1.5 }}>
+          Tidak perlu daftar akun. Nama hanya dipakai di papan skor sesi ini.
         </p>
+        <section aria-labelledby="judul-fasilitator" style={{ marginTop: 'auto', border: '2px solid var(--line)', borderRadius: 20, padding: 20, background: 'var(--surface)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <h2 id="judul-fasilitator" style={{ fontSize: 17, fontWeight: 800 }}>Kamu fasilitator atau penyuluh?</h2>
+            <p className="muted" style={{ fontSize: 14, lineHeight: 1.5 }}>Masuk di sini untuk membuat sesi, menayangkan soal ke peserta, dan memandu pembahasan.</p>
+          </div>
+          <a href="/host" className="btn sekunder" onClick={(e) => { e.preventDefault(); pindah('/host') }}
+            style={{ textDecoration: 'none', textAlign: 'center', fontSize: 17, whiteSpace: 'nowrap' }}>Masuk sebagai fasilitator →</a>
+        </section>
         <div style={{ display: 'flex', justifyContent: 'center' }}><TombolInstal /></div>
         <Kredit />
       </main>
