@@ -4,6 +4,7 @@ import { supabase, GAMES, NAMA_SESI, pesanError } from '../supabase.js'
 import { pindah } from '../App.jsx'
 import { daftarOpsi, TombolOpsi, Ikon, useSisaWaktu } from '../components/Opsi.jsx'
 import { urutanBenar, tandaEfek } from '../components/MiniGames.jsx'
+import { putar, henti, musikNyala, aturMusik, dengarkanMusik } from '../lib/musik.js'
 
 const angka = (n) => (n ?? 0).toLocaleString('id-ID')
 const pinSpasi = (p) => (p ? `${p.slice(0, 3)} ${p.slice(3)}` : '')
@@ -61,6 +62,19 @@ export default function HostSesi({ sid }) {
   const q = idx >= 0 ? soal[idx] : null
   const dilema = sesi?.game === 'dilema'
 
+  // Musik latar: ceria di lobi, tegang saat soal tayang, sorak saat hasil dibuka.
+  const [musik, setMusik] = useState(musikNyala)
+  useEffect(() => dengarkanMusik(setMusik), [])
+  const st = sesi?.status
+  const modeMusik = !st ? null
+    : st === 'lobby' ? 'lobi'
+    : st === 'ended' ? (dilema ? 'diam' : 'juara')
+    : st === 'running' ? 'soal'
+    : st === 'reveal' ? (dilema ? 'diam' : tampilSkor ? 'skor' : 'benar')
+    : 'diam'
+  useEffect(() => { if (modeMusik && musik) putar(modeMusik) }, [modeMusik, q?.id, musik])
+  useEffect(() => () => henti(), [])
+
   async function aksi(fn) {
     setErr(''); setSibuk(true)
     try { const { data, error } = await fn(); if (error) throw error; if (data) setSesi(Array.isArray(data) ? data[0] : data) }
@@ -108,6 +122,9 @@ export default function HostSesi({ sid }) {
         <span className="muted" style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 18 }}>
           <Ikon nama="orang" size={22} /> {pemain.length} peserta
         </span>
+        <button type="button" className="btn sekunder kecil" aria-pressed={musik} onClick={() => aturMusik(!musik)}>
+          {musik ? 'Musik: nyala' : 'Musik: mati'}
+        </button>
         <a href="/host" onClick={(e) => { e.preventDefault(); pindah('/host') }} className="btn sekunder kecil">← Ruang fasilitator</a>
       </div>
     </header>
