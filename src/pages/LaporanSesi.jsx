@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useMasuk } from '../lib/animasi.jsx'
 import { supabase, GAMES, NAMA_SESI, durasiEfektif, pesanError } from '../supabase.js'
 import { pindah } from '../App.jsx'
 import { ambilProfil } from './Profil.jsx'
@@ -22,6 +23,8 @@ export default function LaporanSesi({ sid }) {
   const [lap, setLap] = useState(null)
   const [err, setErr] = useState('')
 
+  const akar = useRef(null)
+  useMasuk(akar, [!!lap])
   useEffect(() => {
     ;(async () => {
       try {
@@ -59,22 +62,22 @@ export default function LaporanSesi({ sid }) {
   const fasilitator = [profil?.nama, profil?.skema_paksi && `Penyuluh Antikorupsi ${profil.skema_paksi}`, profil?.no_reg_paksi && `No. ${profil.no_reg_paksi}`, profil?.instansi].filter(Boolean).join(' · ')
 
   return (
-    <div className="host halaman-laporan">
-      <div className="no-print" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="host halaman-laporan" ref={akar}>
+      <div data-masuk className="no-print" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center' }}>
         <button className="btn sekunder kecil" onClick={() => pindah('/host')}>← Ruang fasilitator</button>
         <button className="btn tekan" onClick={() => window.print()}>Cetak PDF</button>
       </div>
       <p className="muted no-print" style={{ fontSize: 15, marginTop: -8 }}>Di kotak cetak, pilih "Simpan sebagai PDF" sebagai printer.</p>
 
       <article className="laporan">
-        <header className="laporan-kop">
+        <header data-masuk className="laporan-kop">
           <span className="laporan-label">Laporan sesi Arnitas · Arena Integritas</span>
           <h1>{judul}</h1>
           <p>{tgl(s.ended_at || s.created_at)} · PIN {s.pin}</p>
           {fasilitator && <p>Fasilitator: {fasilitator}</p>}
         </header>
 
-        <section className="laporan-ringkas" aria-label="Ringkasan">
+        <section data-masuk className="laporan-ringkas" aria-label="Ringkasan">
           <div><b>{pemain.length}</b><span>peserta</span></div>
           <div><b>{soal.length}</b><span>{s.game === 'dilema' ? 'babak' : 'soal'}</span></div>
           <div><b>{rata === null ? '–' : `${rata}%`}</b><span>rata-rata benar</span></div>

@@ -4,7 +4,8 @@ import { Avatar } from '../components/Avatar.jsx'
 import Profil, { ambilProfil } from './Profil.jsx'
 import BuatSesi from './BuatSesi.jsx'
 import SesiSaya from './SesiSaya.jsx'
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
+import { useMasuk } from '../lib/animasi.jsx'
 import { supabase, GAMES, pesanError } from '../supabase.js'
 import { pindah } from '../App.jsx'
 
@@ -54,7 +55,7 @@ function HalamanProfil({ user }) {
 
 function Kepala({ kanan }) {
   return (
-    <header className="host-header">
+    <header data-masuk className="host-header">
       <div className="brand">
         <img src="/logo-arnitas-on-dark.svg" alt="Arnitas" style={{ width: 178, height: 44 }} />
         <span className="muted" style={{ fontSize: 14, fontWeight: 700, borderLeft: '2px solid var(--line)', paddingLeft: 14 }}>Ruang fasilitator</span>
@@ -105,6 +106,8 @@ function Masuk() {
   const [err, setErr] = useState('')
   const [sibuk, setSibuk] = useState(false)
   const [galat, setGalat] = useState({})
+  const akar = useRef(null)
+  useMasuk(akar)
   const hapusGalat = (k) => setGalat((g) => ({ ...g, [k]: '' }))
   const cekBlur = (k) => {
     let m = ''
@@ -135,10 +138,10 @@ function Masuk() {
   }
 
   return (
-    <div className="host">
+    <div className="host" ref={akar}>
       <Kepala kanan={<div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}><TombolInstal gelap /><TautanGabung /></div>} />
       <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <form onSubmit={kirim} className="kartu-besar" style={{ width: '100%', maxWidth: 440, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <form data-masuk onSubmit={kirim} className="kartu-besar" style={{ width: '100%', maxWidth: 440, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <h1 style={{ fontSize: 28, fontWeight: 800 }}>{mode === 'masuk' ? 'Masuk sebagai fasilitator' : 'Daftar akun fasilitator'}</h1>
           <label className="field">EMAIL<input className="input" type="email" required autoComplete="email" value={email}
             aria-invalid={!!galat.email} aria-describedby={galat.email ? 'galat-email' : undefined}
@@ -167,11 +170,13 @@ function Masuk() {
 }
 
 function Panel({ user }) {
+  const akar = useRef(null)
+  useMasuk(akar)
   return (
-    <div className="host">
+    <div className="host" ref={akar}>
       <Kepala kanan={<KananPanel user={user} />} />
-      <BuatSesi user={user} />
-      <SesiSaya user={user} />
+      <div data-masuk><BuatSesi user={user} /></div>
+      <div data-masuk><SesiSaya user={user} /></div>
       <Kredit />
     </div>
   )

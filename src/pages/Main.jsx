@@ -1,3 +1,4 @@
+import { AngkaNaik } from '../lib/animasi.jsx'
 import { useEffect, useRef, useState } from 'react'
 import { supabase, pesanError, GAMES, NAMA_SESI, durasiEfektif } from '../supabase.js'
 import { pindah } from '../App.jsx'
@@ -110,7 +111,7 @@ export default function Main({ sid }) {
         {sesi.game !== 'dilema' && (
           <div className="kartu-besar" style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
             <span className="label">Skor akhir</span>
-            <span style={{ fontSize: 40, fontWeight: 800 }}>{angka(saya.skor)}</span>
+            <AngkaNaik nilai={saya.skor} style={{ fontSize: 40, fontWeight: 800 }} />
             {peringkat && <span className="muted" style={{ fontWeight: 700 }}>Posisi {peringkat.posisi} dari {peringkat.total}</span>}
           </div>
         )}

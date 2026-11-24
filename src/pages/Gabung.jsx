@@ -1,6 +1,7 @@
 import { Kredit } from '../components/Kredit.jsx'
 import { TombolInstal } from '../components/Instal.jsx'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { useMasuk, useMengambang } from '../lib/animasi.jsx'
 import { supabase, pastikanLoginAnonim, pesanError } from '../supabase.js'
 import { pindah } from '../App.jsx'
 
@@ -10,6 +11,10 @@ export default function Gabung({ pinAwal }) {
   const [sibuk, setSibuk] = useState(false)
   const [err, setErr] = useState('')
   const [galat, setGalat] = useState({})
+  const akar = useRef(null)
+  const maskot = useRef(null)
+  useMasuk(akar)
+  useMengambang(maskot)
 
   async function kirim(e) {
     e.preventDefault()
@@ -29,14 +34,14 @@ export default function Gabung({ pinAwal }) {
   }
 
   return (
-    <div className="halaman">
+    <div className="halaman" ref={akar}>
       <main className="hp" style={{ paddingTop: 48 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, textAlign: 'center' }}>
+        <div data-masuk style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, textAlign: 'center' }}>
           <h1 style={{ margin: 0 }}><img src="/logo-arnitas.svg" alt="Arnitas" width="218" height="54" /></h1>
           <p className="muted" style={{ fontSize: 15 }}>Arena Integritas · Seru mainnya, jujur sikapnya.</p>
         </div>
-        <img src="/bening-senang.svg" alt="Bening menyapa" width="140" height="140" style={{ alignSelf: 'center' }} />
-        <form onSubmit={kirim} className="kartu-besar" style={{ display: 'flex', flexDirection: 'column', gap: 16, border: '1px solid var(--line)' }}>
+        <img ref={maskot} data-masuk src="/bening-senang.svg" alt="Bening menyapa" width="140" height="140" style={{ alignSelf: 'center' }} />
+        <form data-masuk onSubmit={kirim} className="kartu-besar" style={{ display: 'flex', flexDirection: 'column', gap: 16, border: '1px solid var(--line)' }}>
           <label className="field">PIN SESI
             <input className="input pin" inputMode="numeric" autoComplete="off" maxLength={6} value={pin}
               aria-invalid={!!galat.pin} aria-describedby={galat.pin ? 'galat-pin' : undefined}
@@ -50,10 +55,10 @@ export default function Gabung({ pinAwal }) {
           {err && <p className="error" role="alert">{err}</p>}
           <button className="btn tekan" disabled={sibuk}>{sibuk ? 'Masuk…' : 'Gabung'}</button>
         </form>
-        <p className="muted" style={{ fontSize: 13, textAlign: 'center', lineHeight: 1.5 }}>
+        <p data-masuk className="muted" style={{ fontSize: 13, textAlign: 'center', lineHeight: 1.5 }}>
           Tidak perlu daftar akun. Nama hanya dipakai di papan skor sesi ini.
         </p>
-        <section aria-labelledby="judul-fasilitator" style={{ marginTop: 'auto', border: '2px solid var(--line)', borderRadius: 20, padding: 20, background: 'var(--surface)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <section data-masuk aria-labelledby="judul-fasilitator" style={{ marginTop: 'auto', border: '2px solid var(--line)', borderRadius: 20, padding: 20, background: 'var(--surface)', display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <h2 id="judul-fasilitator" style={{ fontSize: 17, fontWeight: 800 }}>Kamu fasilitator atau penyuluh?</h2>
             <p className="muted" style={{ fontSize: 14, lineHeight: 1.5 }}>Masuk di sini untuk membuat sesi, menayangkan soal ke peserta, dan memandu pembahasan.</p>

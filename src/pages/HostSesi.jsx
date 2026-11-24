@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import QRCode from 'qrcode'
+import * as m from 'motion/react-m'
+import { AngkaNaik } from '../lib/animasi.jsx'
 import { supabase, GAMES, NAMA_SESI, pesanError, durasiEfektif } from '../supabase.js'
 import { pindah } from '../App.jsx'
 import { daftarOpsi, TombolOpsi, Ikon, useSisaWaktu } from '../components/Opsi.jsx'
@@ -258,7 +260,7 @@ function SoalTayang({ q, durasi, sid, totalPemain, onHabis, sibuk }) {
 }
 
 function Bar({ n, total, warna }) {
-  return <div className="bar"><div style={{ width: `${total ? (n / total) * 100 : 0}%`, background: warna }} /></div>
+  return <div className="bar"><m.div initial={{ width: 0 }} animate={{ width: `${total ? (n / total) * 100 : 0}%` }} transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }} style={{ height: '100%', borderRadius: 'var(--radius-sm)', background: warna }} /></div>
 }
 
 function Pembahasan({ q, sid, sibuk, onLanjut, onLanjutCerita }) {
@@ -386,7 +388,7 @@ function AkhirCerita({ q, alur, indeks, aksi }) {
         <aside style={{ flex: '0 1 320px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
           <img src={indeks >= 70 ? '/bening-senang.svg' : indeks >= 40 ? '/bening-mikir.svg' : '/bening-kaget.svg'} alt="" width="200" height="200" />
           <span className="label">Indeks Integritas akhir</span>
-          <span style={{ fontSize: 96, lineHeight: 1, fontWeight: 800, color: 'var(--kuning)' }}>{indeks}</span>
+          <AngkaNaik nilai={indeks} style={{ fontSize: 96, lineHeight: 1, fontWeight: 800, color: 'var(--kuning)' }} />
           <p style={{ fontSize: 22, fontWeight: 700 }}>{nada}</p>
         </aside>
       </main>
@@ -403,12 +405,14 @@ function PapanSkor({ pemain, judul, aksi, akhir }) {
         <section style={{ flex: '1 1 520px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           <h1 style={{ fontSize: 'clamp(36px, 4.4vw, 56px)', fontWeight: 800, letterSpacing: '-.02em', marginBottom: 8 }}>{judul}</h1>
           {top.map((p, i) => (
-            <div key={p.id} className={`baris-skor ${i === 0 ? 'juara' : ''}`}>
+            <m.div key={p.id} layout transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+              initial={{ opacity: 0, x: -48 }} animate={{ opacity: 1, x: 0, transition: { delay: i * 0.09, duration: 0.45, ease: 'easeOut' } }}
+              className={`baris-skor ${i === 0 ? 'juara' : ''}`}>
               <span style={{ minWidth: 28, fontWeight: 800 }}>{i + 1}</span>
               <span style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{p.nama}</span>
               {p.streak >= 2 && <span className="chip" style={{ background: i === 0 ? '#0E1A30' : 'var(--line)', color: 'var(--kuning)' }}><Ikon nama="api" size={16} />{p.streak} beruntun</span>}
-              <span style={{ minWidth: 80, textAlign: 'right', fontWeight: 800 }}>{angka(p.skor)}</span>
-            </div>
+              <AngkaNaik nilai={p.skor} style={{ minWidth: 80, textAlign: 'right', fontWeight: 800 }} />
+            </m.div>
           ))}
           {top.length === 0 && <p className="muted">Belum ada peserta.</p>}
         </section>
