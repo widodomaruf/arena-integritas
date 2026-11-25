@@ -158,6 +158,19 @@ function Masuk() {
     } finally { setSibuk(false) }
   }
 
+  async function lupaSandi() {
+    setErr(''); setPesan('')
+    const em = email.trim()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { setErr('Isi email kamu di atas dulu, lalu klik "Lupa kata sandi?".'); return }
+    setSibuk(true)
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(em, { redirectTo: `${window.location.origin}/host` })
+      if (error) throw error
+      setPesan(`Jika ${em} terdaftar, tautan untuk membuat kata sandi baru sudah dikirim. Cek juga folder spam.`)
+      setJeda(60)
+    } catch (e3) { setErr(pesanError(e3)) } finally { setSibuk(false) }
+  }
+
   async function kirimUlang() {
     setErr(''); setSibuk(true)
     try {
@@ -190,11 +203,16 @@ function Masuk() {
           </>}
           <InputSandi label="KATA SANDI" value={sandi} galat={mode === 'daftar' ? galat.sandi : ''} onBlur={() => cekBlur('sandi')}
             onChange={(v) => { setSandi(v); hapusGalat('sandi'); hapusGalat('ulang') }} autoComplete={mode === 'masuk' ? 'current-password' : 'new-password'} />
+          {mode === 'masuk' && (
+            <button type="button" className="btn sekunder kecil" disabled={sibuk || jeda > 0} onClick={lupaSandi}>
+              {jeda > 0 ? `Lupa kata sandi? Kirim ulang dalam ${jeda} dtk` : 'Lupa kata sandi?'}
+            </button>
+          )}
           {mode === 'daftar' && <>
             <InputSandi label="ULANGI KATA SANDI" value={ulang} galat={galat.ulang} onBlur={() => cekBlur('ulang')}
               onChange={(v) => { setUlang(v); hapusGalat('ulang') }} autoComplete="new-password" />
             {!galat.ulang && <p className="muted" style={{ fontSize: 14, margin: 0 }} aria-live="polite">
-              {ulang && ulang === sandi && sandi.length >= 8 ? '✓ Kata sandi sudah sama.' : 'Minimal 8 karakter. Simpan baik-baik, belum ada fitur lupa kata sandi.'}
+              {ulang && ulang === sandi && sandi.length >= 8 ? '✓ Kata sandi sudah sama.' : 'Minimal 8 karakter. Kalau lupa, kamu bisa mengaturnya ulang lewat email.'}
             </p>}
           </>}
           {err && <p className="error" role="alert">{err}</p>}
