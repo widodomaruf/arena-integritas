@@ -12,12 +12,16 @@ import { useTurnstile, PESAN_VERIFIKASI_BELUM } from '../components/Turnstile.js
 
 export default function HostBeranda({ profil, halaman }) {
   const [user, setUser] = useState(undefined)
+  const [tokenHash, setTokenHash] = useState(() => new URLSearchParams(window.location.search).get('token_hash'))
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user && !data.user.is_anonymous ? data.user : null))
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setUser(s?.user && !s.user.is_anonymous ? s.user : null))
     return () => sub.subscription.unsubscribe()
   }, [])
   if (halaman === '/host/lupa') return <LupaSandi />
+  if (tokenHash && (halaman === '/host/atur-sandi' || halaman === '/host/konfirmasi')) {
+    return <TukarTautan tokenHash={tokenHash} pulih={halaman === '/host/atur-sandi'} onSelesai={() => { window.history.replaceState({}, '', window.location.pathname); setTokenHash(null); if (halaman === '/host/konfirmasi') pindah('/host') }} />
+  }
   if (user === undefined) return <div className="host"><p className="muted">Memuat…</p></div>
   if (halaman === '/host/atur-sandi') return user ? <SandiBaru onSelesai={() => pindah('/host')} /> : <TautanTidakValid />
   if (!user) return <Masuk />
@@ -305,6 +309,35 @@ function LupaSandi() {
           </>}
           <button type="button" className="btn sekunder kecil" onClick={() => pindah('/host')}>← Kembali ke halaman masuk</button>
         </form>
+      </main>
+      <Kredit />
+    </div>
+  )
+}
+
+// Tautan email membawa token_hash ke halaman ini; token baru ditukar saat tombol ditekan,
+// jadi pemindai tautan (Gmail, antivirus) yang hanya membuka halaman tidak menghabiskannya.
+function TukarTautan({ tokenHash, pulih, onSelesai }) {
+  const [sibuk, setSibuk] = useState(false)
+  const [gagal, setGagal] = useState(false)
+  async function lanjut() {
+    setSibuk(true)
+    const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: pulih ? 'recovery' : 'email' })
+    if (error) { setGagal(true); setSibuk(false); return }
+    onSelesai()
+  }
+  if (gagal) return <TautanTidakValid />
+  return (
+    <div className="host">
+      <Kepala kanan={<TautanPanduan />} />
+      <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="kartu-besar" style={{ width: '100%', maxWidth: 440, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <h1 style={{ fontSize: 28, fontWeight: 800 }}>{pulih ? 'Ganti kata sandi' : 'Konfirmasi email'}</h1>
+          <p className="muted" style={{ lineHeight: 1.5 }}>
+            {pulih ? 'Tekan tombol di bawah untuk lanjut membuat kata sandi baru.' : 'Tekan tombol di bawah untuk mengonfirmasi email kamu.'}
+          </p>
+          <button type="button" className="btn tekan" onClick={lanjut} disabled={sibuk}>{sibuk ? 'Memeriksa…' : 'Lanjutkan'}</button>
+        </div>
       </main>
       <Kredit />
     </div>
