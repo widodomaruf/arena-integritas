@@ -111,7 +111,7 @@ export default function LaporanSesi({ sid }) {
           ) : <p>Belum ada soal yang dijawab.</p>}
         </section>
 
-        <footer className="laporan-kaki">Dibuat dengan Arnitas (Arena Integritas) · arnitas.vercel.app</footer>
+        <footer className="laporan-kaki">Dibuat dengan Arnitas (Arena Integritas) · arnitas.my.id</footer>
       </article>
     </div>
   )
