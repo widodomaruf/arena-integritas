@@ -7,6 +7,10 @@ import Main from './pages/Main.jsx'
 import HostBeranda from './pages/HostBeranda.jsx'
 import HostSesi from './pages/HostSesi.jsx'
 import LaporanSesi from './pages/LaporanSesi.jsx'
+import { supabase } from './supabase.js'
+
+// Dibaca sebelum Supabase menghapus #hash dari URL.
+const DARI_TAUTAN_PEMULIHAN = /type=recovery/.test(window.location.hash)
 
 export function pindah(path) {
   window.history.pushState({}, '', path)
@@ -19,6 +23,13 @@ export default function App() {
     const f = () => setPath(window.location.pathname)
     window.addEventListener('popstate', f)
     return () => window.removeEventListener('popstate', f)
+  }, [])
+
+  // Tautan ganti kata sandi dari email bisa mendarat di halaman mana pun; arahkan ke formulir kata sandi baru.
+  useEffect(() => {
+    if (DARI_TAUTAN_PEMULIHAN) pindah('/host/atur-sandi')
+    const { data: sub } = supabase.auth.onAuthStateChange((e) => { if (e === 'PASSWORD_RECOVERY') pindah('/host/atur-sandi') })
+    return () => sub.subscription.unsubscribe()
   }, [])
 
   const tema = path.startsWith('/host') ? 'dark' : 'light'
@@ -35,7 +46,7 @@ export default function App() {
   if ((mm = path.match(/^\/main\/([0-9a-f-]{36})$/))) el = <Main sid={mm[1]} />
   else if ((mm = path.match(/^\/host\/([0-9a-f-]{36})$/))) el = <HostSesi sid={mm[1]} />
   else if ((mm = path.match(/^\/host\/riwayat\/([0-9a-f-]{36})$/))) el = <LaporanSesi sid={mm[1]} />
-  else if (path.startsWith('/host')) el = <HostBeranda profil={path === '/host/profil'} />
+  else if (path.startsWith('/host')) el = <HostBeranda profil={path === '/host/profil'} halaman={path} />
   else el = <Gabung pinAwal={new URLSearchParams(window.location.search).get('pin') || ''} />
 
   return (
