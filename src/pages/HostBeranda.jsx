@@ -20,6 +20,7 @@ export default function HostBeranda({ profil, halaman }) {
   if (user === undefined) return <div className="host"><p className="muted">Memuat…</p></div>
   if (halaman === '/host/atur-sandi') return user ? <SandiBaru onSelesai={() => pindah('/host')} /> : <TautanTidakValid />
   if (!user) return <Masuk />
+  if (halaman === '/host/baru') return <HalamanBaru user={user} />
   return profil ? <HalamanProfil user={user} /> : <Panel user={user} />
 }
 
@@ -237,16 +238,15 @@ function ImbauanAkunLama({ user }) {
   function nanti() { try { sessionStorage.setItem(KUNCI_TUTUP, '1') } catch { /* abaikan */ } setTutup(true) }
   return (
     <section className="kartu" role="region" aria-label="Imbauan keamanan akun" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <h2 style={{ fontSize: 20, fontWeight: 800 }}>Amankan akun kamu</h2>
-      <p style={{ lineHeight: 1.5 }}>
-        Akun ini dibuat sebelum verifikasi email aktif. Demi keamanan, konfirmasi bahwa email <strong>{user.email}</strong> memang milikmu dan ganti kata sandi.
-        Kami kirim tautan ke email itu. Klik tautannya, lalu isi kata sandi baru.
+      <h2 style={{ fontSize: 17, fontWeight: 800 }}>Amankan akun kamu</h2>
+      <p style={{ lineHeight: 1.5, fontSize: 15 }}>
+        Akun ini dibuat sebelum verifikasi email aktif. Konfirmasi email <strong>{user.email}</strong> dan ganti kata sandi lewat tautan yang kami kirim.
       </p>
       {terkirim && <p style={{ fontWeight: 700, color: 'var(--toska)' }} role="status">Tautan dikirim ke {user.email}. Cek juga folder spam.</p>}
       {err && <p className="error" role="alert">{err}</p>}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-        <button type="button" className="btn tekan" disabled={sibuk || terkirim} onClick={kirim}>{sibuk ? 'Sebentar…' : terkirim ? 'Tautan terkirim' : 'Kirim tautan ke email saya'}</button>
-        <button type="button" className="btn sekunder kecil" onClick={nanti}>Nanti saja</button>
+        <button type="button" className="btn sekunder kecil" disabled={sibuk || terkirim} onClick={kirim}>{sibuk ? 'Sebentar…' : terkirim ? 'Tautan terkirim' : 'Kirim tautan ke email saya'}</button>
+        <button type="button" className="btn teks" onClick={nanti}>Nanti saja</button>
       </div>
     </section>
   )
@@ -360,15 +360,73 @@ function SandiBaru({ onSelesai }) {
   )
 }
 
+function MenuAkun({ user }) {
+  const [buka, setBuka] = useState(false)
+  const [p, setP] = useState(null)
+  const akar = useRef(null)
+  const id = useId()
+  useEffect(() => { ambilProfil(user.id).then(setP).catch(() => {}) }, [user.id])
+  useEffect(() => {
+    if (!buka) return
+    const tutup = (e) => { if (!akar.current?.contains(e.target)) setBuka(false) }
+    const esc = (e) => { if (e.key === 'Escape') setBuka(false) }
+    document.addEventListener('pointerdown', tutup)
+    document.addEventListener('keydown', esc)
+    return () => { document.removeEventListener('pointerdown', tutup); document.removeEventListener('keydown', esc) }
+  }, [buka])
+  return (
+    <div className="menu-akun" ref={akar}>
+      <button type="button" className="chip-profil" aria-expanded={buka} aria-controls={id} onClick={() => setBuka(!buka)}>
+        <Avatar id={p?.avatar || 'p1'} size={36} />
+        <span>{p?.nama || 'Akun saya'}</span>
+        <span aria-hidden>▾</span>
+      </button>
+      {buka && (
+        <div id={id} className="menu-akun-isi">
+          <button type="button" className="btn sekunder kecil" onClick={() => { setBuka(false); pindah('/host/profil') }}>Profil saya</button>
+          <TautanPanduan />
+          <TombolInstal gelap />
+          <button type="button" className="btn sekunder kecil" onClick={() => supabase.auth.signOut()}>Keluar</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Mulai({ kosong }) {
+  return (
+    <section className="kartu-besar hero-mulai" style={{ display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'flex-start' }}>
+      <h1 style={{ fontSize: 32, fontWeight: 800 }}>{kosong ? 'Buat sesi pertamamu' : 'Mulai sesi baru'}</h1>
+      <p className="muted" style={{ lineHeight: 1.5 }}>
+        {kosong ? 'Pilih peserta dan paket, lalu bagikan PIN. Peserta gabung dari HP tanpa akun.' : 'Pilih peserta dan paket, lalu buka lobi.'}
+      </p>
+      <button type="button" className="btn tekan" onClick={() => pindah('/host/baru')}>+ Buat sesi baru</button>
+    </section>
+  )
+}
+
 function Panel({ user }) {
   const akar = useRef(null)
   useMasuk(akar)
   return (
     <div className="host" ref={akar}>
-      <Kepala kanan={<KananPanel user={user} />} />
-      <div data-masuk><ImbauanAkunLama user={user} /></div>
+      <Kepala kanan={<MenuAkun user={user} />} />
+      <main data-masuk style={{ display: 'flex', flexDirection: 'column', gap: 28, maxWidth: 1040, width: '100%', margin: '0 auto' }}>
+        <ImbauanAkunLama user={user} />
+        <SesiSaya user={user}>{({ kosong }) => <Mulai kosong={kosong} />}</SesiSaya>
+      </main>
+      <Kredit />
+    </div>
+  )
+}
+
+function HalamanBaru({ user }) {
+  const akar = useRef(null)
+  useMasuk(akar)
+  return (
+    <div className="host" ref={akar}>
+      <Kepala kanan={<MenuAkun user={user} />} />
       <div data-masuk><BuatSesi user={user} /></div>
-      <div data-masuk><SesiSaya user={user} /></div>
       <Kredit />
     </div>
   )

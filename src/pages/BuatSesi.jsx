@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase, GAMES, NAMA_SESI, SASARAN, TOPIK, BANK_V2, GAME_PILIHAN, estimasiSesi, pesanError } from '../supabase.js'
 import { pindah } from '../App.jsx'
 
@@ -16,10 +16,10 @@ function Chip({ aktif, onClick, children, peran = 'radio' }) {
   )
 }
 
-function Langkah({ no, judul, children }) {
+function Langkah({ no, judul, children, refJudul }) {
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <h2 style={{ fontSize: 20, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 12 }}>
+      <h2 ref={refJudul} tabIndex={-1} style={{ fontSize: 20, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 12, outline: 'none' }}>
         <span aria-hidden style={{ width: 32, height: 32, borderRadius: 16, background: 'var(--toska)', color: '#0E1A30', display: 'grid', placeItems: 'center', fontSize: 16 }}>{no}</span>
         {judul}
       </h2>
@@ -44,6 +44,15 @@ export default function BuatSesi({ user }) {
   const [acak, setAcak] = useState(true)
   const [err, setErr] = useState('')
   const [sibuk, setSibuk] = useState(false)
+  const [langkah, setLangkah] = useState(1)
+  const refJudul = useRef(null)
+  const awal = useRef(true)
+
+  useEffect(() => {
+    if (awal.current) { awal.current = false; return }
+    window.scrollTo({ top: 0 })
+    refJudul.current?.focus()
+  }, [langkah])
 
   useEffect(() => {
     ;(async () => {
@@ -150,22 +159,40 @@ export default function BuatSesi({ user }) {
   const labelEstimasi = (e) => `${e.soal} soal · ± ${e.menit} menit`
   const ringkasLangkah = (p) => p.langkah.map((l) => `${GAMES[l.game]?.nama} ${l.jumlah}`).join(' · ')
 
+  const siap3 = mode === 'paket' ? !!paketTerpilih : !!game && (game !== 'dilema' || !!skenario)
+  const namaSasaran = SASARAN.find((x) => x.id === sasaran)?.nama
+  const judulPilihan = mode === 'paket' ? paketTerpilih?.judul : game === 'dilema' ? cerita.find((c) => c.id === skenario)?.judul : GAMES[game]?.nama
+  const maju = langkah < 3
+  const lanjutMati = langkah === 1 ? !sasaran : !siap3
+
   return (
-    <main style={{ display: 'flex', flexDirection: 'column', gap: 32, maxWidth: 1040, width: '100%', margin: '0 auto' }}>
+    <main style={{ display: 'flex', flexDirection: 'column', gap: 28, maxWidth: 1040, width: '100%', margin: '0 auto' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <h1 style={{ fontSize: 36, fontWeight: 800 }}>Buat sesi baru</h1>
+        <h1 style={{ fontSize: 32, fontWeight: 800 }}>Buat sesi baru</h1>
         <p className="muted" style={{ fontWeight: 700 }}>{bank ? `${bank.judul} · ${soal.length} soal terverifikasi` : 'Memuat bank soal…'}</p>
       </div>
 
-      <Langkah no="1" judul="Siapa pesertanya?">
-        <div role="radiogroup" aria-label="Sasaran peserta" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          {SASARAN.map((s) => <Chip key={s.id} aktif={sasaran === s.id} onClick={() => gantiSasaran(s.id)}>{s.nama}</Chip>)}
-        </div>
-        {sasaran && <p className="muted" style={{ fontSize: 15 }}>{SASARAN.find((s) => s.id === sasaran)?.ket} · {untukSasaran.filter((q) => q.game !== 'dilema').length} soal dan {cerita.length} cerita dilema tersedia</p>}
-      </Langkah>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="langkah-bar" aria-hidden>{[1, 2, 3].map((n) => <span key={n} className={n <= langkah ? 'aktif' : ''} />)}</div>
+        <p className="label" aria-live="polite">Langkah {langkah} dari 3</p>
+      </div>
 
-      {sasaran && (
-        <Langkah no="2" judul="Pakai paket siap pakai atau atur sendiri?">
+      {langkah === 1 && (
+        <Langkah no="1" judul="Siapa pesertanya?" refJudul={refJudul}>
+          <div role="radiogroup" aria-label="Sasaran peserta" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+            {SASARAN.map((x) => (
+              <button key={x.id} type="button" role="radio" aria-checked={sasaran === x.id} onClick={() => gantiSasaran(x.id)} className="kartu-pilih">
+                <span style={{ fontSize: 20, fontWeight: 800 }}>{x.nama}</span>
+                <span className="muted" style={{ fontSize: 15, fontWeight: 600 }}>{x.ket}</span>
+              </button>
+            ))}
+          </div>
+          {sasaran && <p className="muted" style={{ fontSize: 15 }}>{untukSasaran.filter((q) => q.game !== 'dilema').length} soal dan {cerita.length} cerita dilema tersedia untuk {namaSasaran}.</p>}
+        </Langkah>
+      )}
+
+      {langkah === 2 && (
+        <Langkah no="2" judul="Pakai paket siap pakai atau atur sendiri?" refJudul={refJudul}>
           <div role="radiogroup" aria-label="Cara menyusun sesi" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <Chip aktif={mode === 'paket'} onClick={() => gantiMode('paket')}>Paket siap pakai</Chip>
             <Chip aktif={mode === 'atur'} onClick={() => gantiMode('atur')}>Atur sendiri</Chip>
@@ -238,36 +265,47 @@ export default function BuatSesi({ user }) {
         </Langkah>
       )}
 
-      {sasaran && (
-        <Langkah no="3" judul="Berapa detik waktu tiap soal?">
-          <div role="radiogroup" aria-label="Waktu tiap soal" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-            {['15', '20', '30'].map((d) => <Chip key={d} aktif={durasi === d} onClick={() => gantiDurasi(d)}>{d} detik</Chip>)}
-            <Chip aktif={durasi === 'lain'} onClick={() => gantiDurasi('lain')}>Atur sendiri</Chip>
-            {durasi === 'lain' && (
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
-                <span className="sr-only">Waktu tiap soal dalam detik</span>
-                <input className="input" type="number" inputMode="numeric" min={5} max={30} value={durasiLain || ''} onChange={(e) => gantiLain(e.target.value)}
-                  onBlur={() => gantiLain(Math.max(5, durasiLain))} style={{ width: 96, height: 48, fontSize: 18 }} /> detik (5–30)
-              </label>
+      {langkah === 3 && (
+        <Langkah no="3" judul="Cek sesi, lalu buka lobi" refJudul={refJudul}>
+          <div className="kartu-besar" style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-start' }}>
+            <span className="label">Ringkasan sesi</span>
+            <p style={{ fontSize: 22, fontWeight: 800 }}>{judulPilihan}</p>
+            {estimasiPilihan && (
+              <p style={{ fontSize: 20, fontWeight: 800 }}>{estimasiPilihan.soal} {game === 'dilema' && mode === 'atur' ? 'babak' : 'soal'} · ± {estimasiPilihan.menit} menit</p>
             )}
+            <p className="muted" style={{ fontSize: 15 }}>Peserta: {namaSasaran} · Waktu tiap soal: {detikSoal} detik</p>
+            <p className="muted" style={{ fontSize: 15 }}>Perkiraan sudah termasuk pembahasan dan papan skor, belum termasuk diskusi panjang. {estimasiPilihan?.menit > 45 ? 'Cukup panjang. Kurangi jumlah soal kalau waktu fasilitasi terbatas.' : ''}</p>
           </div>
-          <p className="muted" style={{ fontSize: 15 }}>Berlaku untuk soal pilihan ganda ({GAME_PILIHAN.map((g) => GAMES[g].nama).join(', ')}). Detektif SPJ, Susun Alur, dan Dilema memakai waktu bawaan karena perlu membaca lebih lama.</p>
+          <details>
+            <summary style={{ cursor: 'pointer', fontWeight: 800, minHeight: 44, display: 'flex', alignItems: 'center' }}>Ubah waktu tiap soal ▾</summary>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 8 }}>
+              <div role="radiogroup" aria-label="Waktu tiap soal" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                {['15', '20', '30'].map((d) => <Chip key={d} aktif={durasi === d} onClick={() => gantiDurasi(d)}>{d} detik</Chip>)}
+                <Chip aktif={durasi === 'lain'} onClick={() => gantiDurasi('lain')}>Atur sendiri</Chip>
+                {durasi === 'lain' && (
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
+                    <span className="sr-only">Waktu tiap soal dalam detik</span>
+                    <input className="input" type="number" inputMode="numeric" min={5} max={30} value={durasiLain || ''} onChange={(e) => gantiLain(e.target.value)}
+                      onBlur={() => gantiLain(Math.max(5, durasiLain))} style={{ width: 96, height: 48, fontSize: 18 }} /> detik (5–30)
+                  </label>
+                )}
+              </div>
+              <p className="muted" style={{ fontSize: 15 }}>Berlaku untuk soal pilihan ganda ({GAME_PILIHAN.map((g) => GAMES[g].nama).join(', ')}). Detektif SPJ, Susun Alur, dan Dilema memakai waktu bawaan karena perlu membaca lebih lama.</p>
+            </div>
+          </details>
+          {err && <p className="error" role="alert">{err}</p>}
         </Langkah>
       )}
 
-      {sasaran && (
-        <div className="kartu-besar" style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-start' }}>
-          <span className="label">Ringkasan sesi</span>
-          {estimasiPilihan ? (
-            <>
-              <p style={{ fontSize: 22, fontWeight: 800 }}>{estimasiPilihan.soal} {game === 'dilema' && mode === 'atur' ? 'babak' : 'soal'} · ± {estimasiPilihan.menit} menit</p>
-              <p className="muted" style={{ fontSize: 15 }}>Perkiraan sudah termasuk pembahasan dan papan skor, belum termasuk diskusi panjang. {estimasiPilihan.menit > 45 ? 'Cukup panjang. Kurangi jumlah soal kalau waktu fasilitasi terbatas.' : ''}</p>
-            </>
-          ) : <p className="muted">{mode === 'paket' ? 'Pilih paket untuk melihat jumlah soal dan perkiraan waktunya.' : 'Pilih permainan untuk melihat jumlah soal dan perkiraan waktunya.'}</p>}
-          {err && <p className="error" role="alert">{err}</p>}
-          <button className="btn tekan" disabled={!bank || sibuk} onClick={buat}>{sibuk ? 'Membuat…' : 'Buka lobi'}</button>
-        </div>
-      )}
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        <button type="button" className="btn sekunder" onClick={() => (langkah === 1 ? pindah('/host') : setLangkah(langkah - 1))}>
+          {langkah === 1 ? '← Kembali ke dasbor' : '← Kembali'}
+        </button>
+        {maju
+          ? <button type="button" className="btn tekan" disabled={lanjutMati} onClick={() => setLangkah(langkah + 1)}>Lanjut</button>
+          : <button type="button" className="btn tekan" disabled={!bank || sibuk} onClick={buat}>{sibuk ? 'Membuat…' : 'Buka lobi'}</button>}
+        {maju && lanjutMati && langkah === 2 && <span className="muted" style={{ fontSize: 15 }}>{mode === 'paket' ? 'Pilih satu paket dulu.' : 'Pilih permainan dulu.'}</span>}
+      </div>
     </main>
   )
 }
