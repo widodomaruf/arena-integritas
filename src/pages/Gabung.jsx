@@ -4,6 +4,7 @@ import { useRef, useState } from 'react'
 import { useMasuk, useMengambang } from '../lib/animasi.jsx'
 import { supabase, pastikanLoginAnonim, pesanError } from '../supabase.js'
 import { pindah } from '../App.jsx'
+import { useTurnstile, PESAN_VERIFIKASI_BELUM } from '../components/Turnstile.jsx'
 
 export default function Gabung({ pinAwal }) {
   const [pin, setPin] = useState(pinAwal.replace(/\D/g, '').slice(0, 6))
@@ -15,22 +16,25 @@ export default function Gabung({ pinAwal }) {
   const maskot = useRef(null)
   useMasuk(akar)
   useMengambang(maskot)
+  const ts = useTurnstile()
 
   async function kirim(e) {
     e.preventDefault()
     setErr('')
     if (pin.length !== 6) return setErr('PIN terdiri dari 6 angka.')
     if (!nama.trim()) return setErr('Isi nama panggilanmu dulu.')
+    const { data: ada } = await supabase.auth.getSession()
+    if (!ada.session && ts.aktif && !ts.token) return setErr(PESAN_VERIFIKASI_BELUM)
     setSibuk(true)
     try {
-      await pastikanLoginAnonim()
+      await pastikanLoginAnonim(ts.token)
       const { data, error } = await supabase.rpc('join_session', { p_pin: pin, p_nama: nama.trim().slice(0, 30) })
       if (error) throw error
       try { localStorage.setItem('ai_nama', nama.trim()) } catch {}
       pindah(`/main/${data.session_id}`)
     } catch (e2) {
       setErr(/PIN tidak ditemukan/.test(e2.message) ? 'PIN tidak ditemukan. Cek lagi angka di layar depan.' : pesanError(e2))
-    } finally { setSibuk(false) }
+    } finally { setSibuk(false); ts.reset() }
   }
 
   return (
@@ -52,6 +56,7 @@ export default function Gabung({ pinAwal }) {
           <label className="field">NAMA PANGGILAN
             <input className="input" maxLength={30} value={nama} onChange={(e) => setNama(e.target.value)} placeholder="mis. Sari" />
           </label>
+          {ts.kotak}
           {err && <p className="error" role="alert">{err}</p>}
           <button className="btn tekan" disabled={sibuk}>{sibuk ? 'Masuk…' : 'Gabung'}</button>
         </form>

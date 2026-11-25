@@ -49,6 +49,7 @@ export const BANK_V2 = 'Bank Soal Arnitas v2'
 export function pesanError(e) {
   const m = e?.message || String(e)
   if (/anonymous/i.test(m) && /disabled/i.test(m)) return 'Login anonim belum diaktifkan di Supabase. Minta fasilitator mengaktifkannya.'
+  if (/captcha/i.test(m)) return 'Verifikasi keamanan gagal atau kedaluwarsa. Tunggu centang selesai, atau muat ulang halaman, lalu coba lagi.'
   if (/rate limit/i.test(m)) return 'Terlalu banyak percobaan pendaftaran atau masuk. Tunggu sekitar 1 jam, lalu coba lagi.'
   if (/already registered|already exists/i.test(m)) return 'Email ini sudah terdaftar. Pilih "Sudah punya akun? Masuk".'
   if (/password should be at least/i.test(m)) return 'Kata sandi minimal 8 karakter.'
@@ -57,10 +58,10 @@ export function pesanError(e) {
   return m
 }
 
-export async function pastikanLoginAnonim() {
+export async function pastikanLoginAnonim(captchaToken) {
   const { data } = await supabase.auth.getSession()
   if (data.session) return data.session
-  const { data: d, error } = await supabase.auth.signInAnonymously()
+  const { data: d, error } = await supabase.auth.signInAnonymously(captchaToken ? { options: { captchaToken } } : undefined)
   if (error) throw error
   return d.session
 }

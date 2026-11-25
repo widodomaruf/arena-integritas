@@ -8,6 +8,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { useMasuk } from '../lib/animasi.jsx'
 import { supabase, GAMES, pesanError } from '../supabase.js'
 import { pindah } from '../App.jsx'
+import { useTurnstile, PESAN_VERIFIKASI_BELUM } from '../components/Turnstile.jsx'
 
 export default function HostBeranda({ profil, halaman }) {
   const [user, setUser] = useState(undefined)
@@ -106,6 +107,7 @@ function Masuk() {
   const [sandi, setSandi] = useState('')
   const [ulang, setUlang] = useState('')
   const [ulangEmail, setUlangEmail] = useState('')
+  const ts = useTurnstile()
   const [pesan, setPesan] = useState('')
   const [err, setErr] = useState('')
   const [sibuk, setSibuk] = useState(false)
@@ -133,12 +135,13 @@ function Masuk() {
     e.preventDefault(); setErr(''); setPesan(''); setPerluKonfirmasi(false)
     if (mode === 'daftar' && ulangEmail.trim().toLowerCase() !== email.trim().toLowerCase()) { setErr('Kedua email belum sama. Periksa lagi ejaannya, karena tautan konfirmasi dikirim ke sana.'); return }
     if (mode === 'daftar' && sandi !== ulang) { setErr('Kedua kata sandi belum sama. Periksa lagi dengan tombol Lihat.'); return }
+    if (ts.aktif && !ts.token) { setErr(PESAN_VERIFIKASI_BELUM); return }
     setSibuk(true)
     try {
       const { data: cur } = await supabase.auth.getSession()
       if (cur.session?.user?.is_anonymous) await supabase.auth.signOut()
       if (mode === 'daftar') {
-        const { data, error } = await supabase.auth.signUp({ email: email.trim(), password: sandi, options: { emailRedirectTo: `${window.location.origin}/host` } })
+        const { data, error } = await supabase.auth.signUp({ email: email.trim(), password: sandi, options: { emailRedirectTo: `${window.location.origin}/host`, captchaToken: ts.token || undefined } })
         if (error) throw error
         if (data.user && data.user.identities?.length === 0) {
           setErr('Email ini sudah terdaftar. Pilih "Sudah punya akun? Masuk".')
@@ -147,23 +150,25 @@ function Masuk() {
           setPerluKonfirmasi(true); setJeda(60)
         }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password: sandi })
+        const { error } = await supabase.auth.signInWithPassword({ email, password: sandi, options: { captchaToken: ts.token || undefined } })
         if (error) throw error
       }
     } catch (e2) {
       setErr(/Invalid login/i.test(e2.message) ? 'Email atau kata sandi belum cocok. Periksa dengan tombol Lihat, lalu masuk ulang.' : /not confirmed/i.test(e2.message) ? 'Email belum dikonfirmasi. Buka email dari Arnitas dan klik tautannya, atau kirim ulang di bawah.' : pesanError(e2))
       if (/not confirmed/i.test(e2.message)) setPerluKonfirmasi(true)
-    } finally { setSibuk(false) }
+    } finally { setSibuk(false); ts.reset() }
   }
 
   async function kirimUlang() {
-    setErr(''); setSibuk(true)
+    setErr('')
+    if (ts.aktif && !ts.token) { setErr(PESAN_VERIFIKASI_BELUM); return }
+    setSibuk(true)
     try {
-      const { error } = await supabase.auth.resend({ type: 'signup', email, options: { emailRedirectTo: `${window.location.origin}/host` } })
+      const { error } = await supabase.auth.resend({ type: 'signup', email, options: { emailRedirectTo: `${window.location.origin}/host`, captchaToken: ts.token || undefined } })
       if (error) throw error
       setPesan(`Tautan konfirmasi dikirim ulang ke ${email}. Cek juga folder spam.`)
       setJeda(60)
-    } catch (e3) { setErr(pesanError(e3)) } finally { setSibuk(false) }
+    } catch (e3) { setErr(pesanError(e3)) } finally { setSibuk(false); ts.reset() }
   }
 
   return (
@@ -198,6 +203,7 @@ function Masuk() {
               {ulang && ulang === sandi && sandi.length >= 8 ? '✓ Kata sandi sudah sama.' : 'Minimal 8 karakter. Kalau lupa, kamu bisa mengaturnya ulang lewat email.'}
             </p>}
           </>}
+          {ts.kotak}
           {err && <p className="error" role="alert">{err}</p>}
           {pesan && <p style={{ fontWeight: 700, color: 'var(--toska)' }} role="status">{pesan}</p>}
           {perluKonfirmasi && email && (
@@ -219,21 +225,15 @@ function Masuk() {
 // Akun dibuat sebelum verifikasi email aktif (25 Nov 2026, 08.00 WIB).
 const BATAS_AKUN_LAMA = Date.parse('2026-11-25T01:00:00Z')
 const KUNCI_TUTUP = 'arnitas-imbau-akun-lama'
+const KUNCI_EMAIL_LUPA = 'arnitas-email-lupa'
 
 function ImbauanAkunLama({ user }) {
   const [tutup, setTutup] = useState(() => { try { return sessionStorage.getItem(KUNCI_TUTUP) === '1' } catch { return false } })
-  const [terkirim, setTerkirim] = useState(false)
-  const [err, setErr] = useState('')
-  const [sibuk, setSibuk] = useState(false)
   const akunLama = Date.parse(user.created_at) < BATAS_AKUN_LAMA
   if (tutup || !akunLama || user.user_metadata?.kredensial_diperbarui || !user.email) return null
-  async function kirim() {
-    setErr(''); setSibuk(true)
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(user.email, { redirectTo: `${window.location.origin}/host/atur-sandi` })
-      if (error) throw error
-      setTerkirim(true)
-    } catch (e) { setErr(pesanError(e)) } finally { setSibuk(false) }
+  function mulai() {
+    try { sessionStorage.setItem(KUNCI_EMAIL_LUPA, user.email) } catch { /* abaikan */ }
+    pindah('/host/lupa')
   }
   function nanti() { try { sessionStorage.setItem(KUNCI_TUTUP, '1') } catch { /* abaikan */ } setTutup(true) }
   return (
@@ -242,10 +242,8 @@ function ImbauanAkunLama({ user }) {
       <p style={{ lineHeight: 1.5, fontSize: 15 }}>
         Akun ini dibuat sebelum verifikasi email aktif. Konfirmasi email <strong>{user.email}</strong> dan ganti kata sandi lewat tautan yang kami kirim.
       </p>
-      {terkirim && <p style={{ fontWeight: 700, color: 'var(--toska)' }} role="status">Tautan dikirim ke {user.email}. Cek juga folder spam.</p>}
-      {err && <p className="error" role="alert">{err}</p>}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-        <button type="button" className="btn sekunder kecil" disabled={sibuk || terkirim} onClick={kirim}>{sibuk ? 'Sebentar…' : terkirim ? 'Tautan terkirim' : 'Kirim tautan ke email saya'}</button>
+        <button type="button" className="btn sekunder kecil" onClick={mulai}>Kirim tautan ke email saya</button>
         <button type="button" className="btn teks" onClick={nanti}>Nanti saja</button>
       </div>
     </section>
@@ -253,7 +251,8 @@ function ImbauanAkunLama({ user }) {
 }
 
 function LupaSandi() {
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(() => { try { const e = sessionStorage.getItem(KUNCI_EMAIL_LUPA) || ''; sessionStorage.removeItem(KUNCI_EMAIL_LUPA); return e } catch { return '' } })
+  const ts = useTurnstile()
   const [galat, setGalat] = useState('')
   const [err, setErr] = useState('')
   const [terkirim, setTerkirim] = useState(false)
@@ -270,12 +269,13 @@ function LupaSandi() {
   async function kirim(e) {
     e.preventDefault(); setErr('')
     if (!emailValid(email)) { setGalat('Format email belum lengkap, contoh nama@gmail.com.'); return }
+    if (ts.aktif && !ts.token) { setErr(PESAN_VERIFIKASI_BELUM); return }
     setSibuk(true)
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/host/atur-sandi` })
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/host/atur-sandi`, captchaToken: ts.token || undefined })
       if (error) throw error
       setTerkirim(true); setJeda(60)
-    } catch (e2) { setErr(pesanError(e2)) } finally { setSibuk(false) }
+    } catch (e2) { setErr(pesanError(e2)) } finally { setSibuk(false); ts.reset() }
   }
   return (
     <div className="host" ref={akar}>
@@ -290,6 +290,7 @@ function LupaSandi() {
             <button type="button" className="btn sekunder kecil" disabled={sibuk || jeda > 0} onClick={kirim}>
               {jeda > 0 ? `Kirim ulang tautan (${jeda} dtk)` : 'Kirim ulang tautan'}
             </button>
+            {ts.kotak}
             {err && <p className="error" role="alert">{err}</p>}
           </> : <>
             <p className="muted" style={{ lineHeight: 1.5 }}>Masukkan email akun fasilitator. Kami kirim tautan untuk membuat kata sandi baru.</p>
@@ -298,6 +299,7 @@ function LupaSandi() {
               onBlur={() => setGalat(email && !emailValid(email) ? 'Format email belum lengkap, contoh nama@gmail.com.' : '')}
               onChange={(e) => { setEmail(e.target.value); setGalat('') }} /></label>
             {galat && <p id="galat-lupa-email" className="error">{galat}</p>}
+            {ts.kotak}
             {err && <p className="error" role="alert">{err}</p>}
             <button className="btn tekan" disabled={sibuk}>{sibuk ? 'Mengirim…' : 'Kirim tautan'}</button>
           </>}
