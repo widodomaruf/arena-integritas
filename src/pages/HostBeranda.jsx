@@ -12,7 +12,7 @@ import { useTurnstile, PESAN_VERIFIKASI_BELUM } from '../components/Turnstile.js
 
 export default function HostBeranda({ profil, halaman }) {
   const [user, setUser] = useState(undefined)
-  const [tokenHash, setTokenHash] = useState(() => new URLSearchParams(window.location.search).get('token_hash'))
+  const [tokenHash, setTokenHash] = useState(() => new URLSearchParams(window.location.hash.slice(1)).get('token_hash'))
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user && !data.user.is_anonymous ? data.user : null))
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setUser(s?.user && !s.user.is_anonymous ? s.user : null))

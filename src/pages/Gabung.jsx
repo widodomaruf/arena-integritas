@@ -30,10 +30,11 @@ export default function Gabung({ pinAwal }) {
       await pastikanLoginAnonim(ts.token)
       const { data, error } = await supabase.rpc('join_session', { p_pin: pin, p_nama: nama.trim().slice(0, 30) })
       if (error) throw error
+      if (!data) throw new Error('PIN tidak ditemukan')
       try { localStorage.setItem('ai_nama', nama.trim()) } catch {}
       pindah(`/main/${data.session_id}`)
     } catch (e2) {
-      setErr(/PIN tidak ditemukan/.test(e2.message) ? 'PIN tidak ditemukan. Cek lagi angka di layar depan.' : pesanError(e2))
+      setErr(/PIN tidak ditemukan/.test(e2.message) ? 'PIN tidak ditemukan. Cek lagi angka di layar depan.' : /Terlalu banyak percobaan/.test(e2.message) ? 'Terlalu banyak percobaan PIN. Tunggu beberapa menit, lalu coba lagi.' : pesanError(e2))
     } finally { setSibuk(false); ts.reset() }
   }
 

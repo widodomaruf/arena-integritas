@@ -10,7 +10,8 @@ import LaporanSesi from './pages/LaporanSesi.jsx'
 import { supabase } from './supabase.js'
 
 // Dibaca sebelum Supabase menghapus #hash dari URL.
-const DARI_TAUTAN_PEMULIHAN = /type=recovery/.test(window.location.hash)
+// Tautan email baru membawa #token_hash=…; itu ditangani halaman tukar-token, bukan sesi pemulihan lama.
+const DARI_TAUTAN_PEMULIHAN = /type=recovery/.test(window.location.hash) && !/token_hash=/.test(window.location.hash)
 
 export function pindah(path) {
   window.history.pushState({}, '', path)

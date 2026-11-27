@@ -16,6 +16,14 @@ Sumber: audit 24 November 2026. Laporan lengkap ada di artifact Claude "Laporan 
 
 SQL-nya ada di `supabase/migrasi/2026-11-24-perbaikan-keamanan.sql`.
 
+## Audit 25 Nov 2026 (ditangani di branch perbaikan-audit-2)
+
+| Kode | Perbaikan |
+|---|---|
+| N-1 | Token tautan email dipindah ke fragmen (`#token_hash=…`) agar tidak masuk GTM, analytics, atau log. Template email perlu diperbarui di Supabase |
+| S-2 | `join_session` membatasi 8 PIN salah per 10 menit per akun anonim; PIN dibuat dari `gen_random_uuid()`. SQL: `supabase/migrasi/2026-11-27-perbaikan-audit-2.sql` (belum diterapkan ke database) |
+| N-2 | Klien hanya boleh UPDATE `durasi_detik`, `judul`, `soal_ids` di `sessions`; `get_reveal` memeriksa bank sesi |
+
 ## Belum diperbaiki
 
 | Kode | Tingkat | Masalah | Yang perlu dilakukan |
